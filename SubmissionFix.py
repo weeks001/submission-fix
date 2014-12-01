@@ -43,6 +43,8 @@ def main():
 			if not os.path.exists(args.path) :
 				os.makedirs(args.path)
 				args.path += '/'
+			if not args.path.endswith('/') :
+				args.path += '/'
 			directory = extractBulk(zippy, students, args.path)
 		else :
 			directory = extractBulk(zippy, students)
@@ -51,6 +53,8 @@ def main():
 	elif args.path :
 		if not os.path.exists(args.path) :
 			os.makedirs(args.path)
+			args.path += '/'
+		if not args.path.endswith('/') :
 			args.path += '/'
 		directory = extractBulk(zippy, directory=args.path)
 	else :
