@@ -4,11 +4,12 @@ from __future__ import with_statement
 """
 This is an awesome script to clean up the bulk submission zip file into a directory with 
 nicely named, (mostly) unnested folders. If specified, it will only extract certain students'
-submissions and/or extract submissions to a specified directory.
+submissions and/or extract submissions to a specified directory. Note, it will only extract 
+into an empty directory. This way it won't accidently overwrite already extracted submissions.
 """
 
 __author__ = "Marie Weeks"
-__version__ = "1.5"
+__version__ = "1.7"
 
 import os
 import sys
@@ -18,8 +19,10 @@ import zipfile
 import tarfile
 import argparse
 
+#TODO: add test cases so I stop missing simple mistakes
+#TODO: handle directory collisions by prompting user
 #TODO: add progress bar! :D
-#TODO: check for compressed files inside compressed files (in student submissions)
+#TODO: handle ., case 
 
 def main():
 	parser = argparse.ArgumentParser(description='Script to extract student submissions from bulk zip.')
@@ -42,7 +45,6 @@ def main():
 		if args.path :		#csv and extraction path input
 			if not os.path.exists(args.path) :
 				os.makedirs(args.path)
-				args.path += '/'
 			if not args.path.endswith('/') :
 				args.path += '/'
 			directory = extractBulk(zippy, students, args.path)
@@ -53,15 +55,18 @@ def main():
 	elif args.path :
 		if not os.path.exists(args.path) :
 			os.makedirs(args.path)
-			args.path += '/'
 		if not args.path.endswith('/') :
 			args.path += '/'
 		directory = extractBulk(zippy, directory=args.path)
 	else :
 		directory = extractBulk(zippy)
 
-	rename(directory)	
-	move(directory, args.move)
+
+	if not os.path.exists(directory) :
+		print "Failed to extract student folders." 
+	else :
+		rename(directory)	
+		move(directory, args.move)
 	print "Done"
 
 
@@ -82,7 +87,7 @@ def readCSV(csvfile):
 	print "Reading spreadsheet..."
 	students = []
 	with open(csvfile, 'rb') as f :
-		reader = csv.reader(f, delimiter=':')
+		reader = csv.reader(f, delimiter=',')
 		for row in reader :
 			students.append(row)
 
@@ -93,7 +98,7 @@ def readCSV(csvfile):
 
 
 
-def extractBulk(zippy, students=[], directory='.'):
+def extractBulk(zippy, students=[], directory='./'):
 	"""Extracts the bulk submission download.
 
 	By default, extracts the bulk submission zip to the working directory. If a directory to 
@@ -124,11 +129,7 @@ def extractBulk(zippy, students=[], directory='.'):
 			os.makedirs(dirname)
 		zfile.extract(name, dirname)
 
-	if directory == '.' :
-		directory = name[:name.find(os.sep)]
-	else :
-		directory += name[:name.find(os.sep)]
-
+	directory += name[:name.find(os.sep)]
 	return directory
 
 def rename(directory):
@@ -181,6 +182,7 @@ def move(directory, out):
 			#move submission attachments out of folder into student name folder and extract
 			dest = os.path.join(directory, fn)
 			source = os.path.join(dest, "Submission attachment(s)")
+			#check if folder exists
 			for files in os.listdir(source) :
 				path = os.path.join(source, files)
 				shutil.move(path, dest)
@@ -190,6 +192,7 @@ def move(directory, out):
 		#move student folder out of the root archive folder
 		if out :
 			source = directory
+			#check if directory has slash
 			dest, extra = os.path.split(directory)
 			path = os.path.join(source, fn)
 			shutil.move(path, dest)
