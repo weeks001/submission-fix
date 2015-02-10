@@ -87,7 +87,7 @@ def readCSV(csvfile):
 	print "Reading spreadsheet..."
 	students = []
 	with open(csvfile, 'rb') as f :
-		reader = csv.reader(f, delimiter=',')
+		reader = csv.reader(f, delimiter=';')
 		for row in reader :
 			students.append(row)
 
