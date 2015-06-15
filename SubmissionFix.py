@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 from __future__ import with_statement
+from datetime import datetime, date
 
 """
 This is an awesome script to clean up the bulk submission zip file into a directory with 
@@ -9,7 +10,7 @@ into an empty directory. This way it won't accidently overwrite already extracte
 """
 
 __author__ = "Marie Weeks"
-__version__ = "1.7"
+__version__ = "1.8"
 
 import os
 import sys
@@ -18,18 +19,32 @@ import shutil
 import zipfile
 import tarfile
 import argparse
+import re
+import time
+
+try :
+	from pytz import timezone
+	import pytz
+	findTime = True
+except ImportError :
+	findTime = False
+
 
 #TODO: add test cases so I stop missing simple mistakes
 #TODO: handle directory collisions by prompting user
-#TODO: add progress bar! :D
-#TODO: handle ., case 
+#TODO: copy in grading files when extracting
+#TODO: report no submissions (check if Submitted Files directory is empty)
+#TODO: only extract the exact name
+
 
 def main():
 	parser = argparse.ArgumentParser(description='Script to extract student submissions from bulk zip.')
 	parser.add_argument('bulksubmission', help='bulk zip of student submissions')
-	parser.add_argument('-c', '--csv', help='student list csv file')
+	parser.add_argument('-c', '--csv', help='student list csv file (semicolon seperated)')
 	parser.add_argument('-p', '--path', help='extraction path for bulk submissions zip')
 	parser.add_argument('-m', '--move', help='move student folders out of archive root folder', action='store_true')
+	parser.add_argument('-t', '--time', help='Flag late submissions past due date. Requires due date and time. Checks submissions using the US/Eastern timezone. Requires pytz to use.', nargs='+', action=requiredLength(2), metavar=('mm/dd/yy', 'hh:mm'))
+	# parser.add_argument('-f', '--files', help='copy grading files into students' submission', )
 
 	if len(sys.argv) == 1 :
 		parser.print_help()
@@ -38,6 +53,15 @@ def main():
 	args = parser.parse_args()
 
 	zippy = args.bulksubmission
+
+	#submit time input
+	if args.time :
+		if not findTime :
+			print "\nModule pytz not found. To use the late submission checking feature, please install pytz.\n"
+		else :
+			duetime = datetime.strptime(args.time[0] + " " + args.time[1], "%m/%d/%y %H:%M")
+			eastern = timezone('US/Eastern')
+			duetime = eastern.localize(duetime)
 
 	#csv file input
 	if args.csv :
@@ -65,9 +89,40 @@ def main():
 	if not os.path.exists(directory) :
 		print "Failed to extract student folders." 
 	else :
-		rename(directory)	
-		move(directory, args.move)
-	print "Done"
+		rename(directory)
+		if findTime and args.time:	
+			late = move(directory, args.move, duetime)
+		else :
+			late = move(directory, args.move)
+
+	#print late submissions
+	if findTime and not late and args.time:
+		print "\n\nNo Late Submissions \n "	
+	if late :
+		print "\n\nLate Submissions: "
+		print '\n'.join(late)
+
+	print "\nDone"
+
+def requiredLength(nargs):
+	"""Checks that input arguments for given flag are of the specified number.
+
+		Creates a custom action by extending Action and overriding the ___call__ method.
+
+		Args:
+			nargs: number of arguments for flag
+
+		Returns:
+			RequiredLength: custom action subclass
+	"""
+	class RequiredLength(argparse.Action):
+		def __call__(self, parser, args, values, option_string=None):
+			if not len(values) == nargs:
+				msg = 'argument "{f}" requires {nargs} arguments'.format(f=self.dest, nargs=nargs)
+				raise argparse.ArgumentTypeError(msg)
+			setattr(args, self.dest, values)
+	return RequiredLength
+
 
 
 def readCSV(csvfile):
@@ -147,24 +202,34 @@ def rename(directory):
 		path = os.path.join(directory, fn)
 		os.rename(path, path[:path.find('(')])	
 
-def move(directory, out):
+def move(directory, out, duetime=0):
 	"""Moves all files in "Submission attachment(s)" up a level
 
 	All files in student's main folder (timestamp.txt, comments.txt, etc) are moved to the 
-	newly created directory Text. "Feedback Attachment(s)" folder is also moved to Text. All 
-	files within "Submission attachment(s)" are moved up to the student's main folder. Empty 
-	"Submission attachment(s)" folder is deleted. extract() is called to extract any zip or 
-	tar files the student submitted. If "out" is true, the student folders will be moved out
-	the root arcive folder and up one level in the directory tree. Useful for having fewer 
-	nested folders if you specify an extraction folder.
+	newly created directory Text. If duetime was set, the submission time in timestamp.txt 
+	will be compared to the duetime. If the submission time is after the duetime, the 
+	student's name and submission time will be added to the late list, to be returned at the
+	end. "Feedback Attachment(s)" folder is also moved to Text. All files within "Submission 
+	attachment(s)" are moved up to the student's main folder. Empty "Submission attachment(s)" 
+	folder is deleted. extract() is called to extract any zip or tar files the student submitted. 
+	If "out" is true, the student folders will be moved out the root arcive folder and up one 
+	level in the directory tree. Useful for having fewer nested folders if you specify an 
+	extraction folder.
 
 	Args:
 		directory: directory with student submission folders
+		out: flag for moving the student folder out of the archive folder
+		duetime: US/Eastern timezone aware due date time to compare submission times to
+
+	Returns:
+		late: list of students whose submissions where after the due date. Empty if duetime is zero.
 	"""
 
+	late = []
 	for fn in os.listdir(directory) :
+		name = fn
 		if os.path.isdir(os.path.join(directory, fn)) :
-			#move timestamp, comments, feedbackText, submissionText to Text folder
+			#move timey, comments, feedbackText, submissionText to Text folder
 			source = os.path.join(directory, fn)
 			dest = os.path.join(source, "Text")
 
@@ -174,6 +239,18 @@ def move(directory, out):
 			for files in os.listdir(source) :
 				if os.path.isfile(os.path.join(source, files)) :
 					path = os.path.join(source, files)
+
+					#check to see if the student's submission was late
+					if duetime and os.path.basename(path) == 'timestamp.txt' :
+						f = open(path, 'r')
+						stamp = f.read()
+						f.close()
+						subtime = stripTime(stamp)
+
+						if not subtime <= duetime :
+							fmt = '%m/%d/%Y  %H:%M'
+							late.append(" " + subtime.strftime(fmt) + "    " + name)
+
 					shutil.move(path, dest)
 			path = os.path.join(source, "Feedback Attachment(s)")
 			if os.path.isdir(path) :
@@ -198,6 +275,8 @@ def move(directory, out):
 			shutil.move(path, dest)
 	if out :		
 		os.rmdir(source)
+
+	return late
 
 
 def extract(directory):
@@ -252,5 +331,29 @@ def untar(directory, tarry):
 	tar.extractall(directory)
 	tar.close()
 	os.remove(tarry)
+
+def stripTime(stamp):
+	"""Converts the timestamp for the student's submission into a timezone aware time.
+
+	Takes in the timestamp string and converts it into a datetime object. From there the
+	datetime object is converted into a US/Eastern timezone aware time and returned. 
+
+	Args:
+		stamp: timestamp string of the format YYYYmmddHHMMsssss
+
+	Returns:
+		subtime: US/Eastern timezone aware submission time
+	"""
+	rawtime = re.compile(r"^(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})")		#YYYYmmddHHMMsssss
+	timey = rawtime.search(stamp).groups()		# ('YYYY', 'mm', 'dd', 'HH', 'mm')
+	timelist = list(timey)
+	timey = '-'.join(timelist)
+	timey = datetime.strptime(timey, "%Y-%m-%d-%H-%M")
+
+	eastern = timezone('US/Eastern')
+	subtime = timey.replace(tzinfo=pytz.utc).astimezone(eastern)
+	subtime = eastern.normalize(subtime)
+	return subtime
+
 
 main()
