@@ -34,7 +34,6 @@ except ImportError :
 #TODO: handle directory collisions by prompting user
 #TODO: copy in grading files when extracting
 #TODO: report no submissions (check if Submitted Files directory is empty)
-#TODO: only extract the exact name
 
 
 def main():
@@ -53,6 +52,7 @@ def main():
 	args = parser.parse_args()
 
 	zippy = args.bulksubmission
+	late = []
 
 	#submit time input
 	if args.time :
@@ -69,8 +69,8 @@ def main():
 		if args.path :		#csv and extraction path input
 			if not os.path.exists(args.path) :
 				os.makedirs(args.path)
-			if not args.path.endswith('/') :
-				args.path += '/'
+			if not args.path.endswith(os.sep) :
+				args.path += os.sep
 			directory = extractBulk(zippy, students, args.path)
 		else :
 			directory = extractBulk(zippy, students)
@@ -79,15 +79,15 @@ def main():
 	elif args.path :
 		if not os.path.exists(args.path) :
 			os.makedirs(args.path)
-		if not args.path.endswith('/') :
-			args.path += '/'
+		if not args.path.endswith(os.sep) :
+			args.path += os.sep
 		directory = extractBulk(zippy, directory=args.path)
 	else :
 		directory = extractBulk(zippy)
 
-
 	if not os.path.exists(directory) :
-		print "Failed to extract student folders." 
+		print "\nFailed to extract student folders." 
+		late = []
 	else :
 		rename(directory)
 		if findTime and args.time:	
@@ -153,7 +153,7 @@ def readCSV(csvfile):
 
 
 
-def extractBulk(zippy, students=[], directory='./'):
+def extractBulk(zippy, students=[], directory=os.getcwd()):
 	"""Extracts the bulk submission download.
 
 	By default, extracts the bulk submission zip to the working directory. If a directory to 
@@ -175,14 +175,20 @@ def extractBulk(zippy, students=[], directory='./'):
 	for name in zfile.namelist() :
 		#check if student list csv file was input
 		if students :
-			#check if any student in students is in the dirname string
-			if not any([s in name.upper() for s in students]) :
+			#get student name out of path
+			sname = name.split(os.sep)[1].split('(')[0]
+			#check if any student in students is in the student string
+			if not any([s == sname.upper() for s in students]) :
 				continue
 
 		dirname = directory		#set directory for extraction
 		if not os.path.exists(dirname) :
 			os.makedirs(dirname)
 		zfile.extract(name, dirname)
+
+
+	if not directory.endswith(os.sep) :
+		directory += os.sep
 
 	directory += name[:name.find(os.sep)]
 	return directory
