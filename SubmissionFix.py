@@ -10,7 +10,7 @@ into an empty directory. This way it won't accidently overwrite already extracte
 """
 
 __author__ = "Marie Weeks"
-__version__ = "1.8"
+__version__ = "1.9"
 
 import os
 import sys
@@ -35,8 +35,12 @@ except ImportError :
 #TODO: copy in grading files when extracting
 #TODO: report no submissions (check if Submitted Files directory is empty)
 
+#TODO: look into 7zip functionality
+#TODO: collapse directories with only one folder inside and no files
+#TODO: break up these functions: main, move
 
-def main():
+
+def main(sysargs):
 	parser = argparse.ArgumentParser(description='Script to extract student submissions from bulk zip.')
 	parser.add_argument('bulksubmission', help='bulk zip of student submissions')
 	parser.add_argument('-c', '--csv', help='student list csv file (semicolon seperated)')
@@ -45,14 +49,16 @@ def main():
 	parser.add_argument('-t', '--time', help='Flag late submissions past due date. Requires due date and time. Checks submissions using the US/Eastern timezone. Requires pytz to use.', nargs='+', action=requiredLength(2), metavar=('mm/dd/yy', 'hh:mm'))
 	# parser.add_argument('-f', '--files', help='copy grading files into students' submission', )
 
-	if len(sys.argv) == 1 :
+	if len(sysargs) == 1 :
 		parser.print_help()
 		sys.exit(1)
 
-	args = parser.parse_args()
+	args = parser.parse_args(sysargs[1:])
 
 	zippy = args.bulksubmission
 	late = []
+
+	print "subfix main: " + os.getcwd()
 
 	#submit time input
 	if args.time :
@@ -83,7 +89,9 @@ def main():
 			args.path += os.sep
 		directory = extractBulk(zippy, directory=args.path)
 	else :
-		directory = extractBulk(zippy)
+		# This makes the tests work. 
+		# The default value for extract bulk screws things up for some reason.
+		directory = extractBulk(zippy, directory=os.getcwd()) 	
 
 	if not os.path.exists(directory) :
 		print "\nFailed to extract student folders." 
@@ -169,6 +177,9 @@ def extractBulk(zippy, students=[], directory=os.getcwd()):
 		Path of newly created directory with extracted files
 	"""
 
+	# print "subfix extract: " + os.getcwd()
+	# print "subfix extract dir: " + directory
+
 	print "Decompressing " + zippy
 	zfile = zipfile.ZipFile(zippy)
 
@@ -206,7 +217,10 @@ def rename(directory):
 	print "Renaming files..."
 	for fn in os.listdir(directory) :
 		path = os.path.join(directory, fn)
-		os.rename(path, path[:path.find('(')])	
+		end = os.path.basename(os.path.normpath(path))
+		new = str(os.path.dirname(path) + os.sep + end[:end.find('(')])
+		os.rename(path, new)
+		
 
 def move(directory, out, duetime=0):
 	"""Moves all files in "Submission attachment(s)" up a level
@@ -361,5 +375,5 @@ def stripTime(stamp):
 	subtime = eastern.normalize(subtime)
 	return subtime
 
-
-main()
+if __name__ == '__main__' :
+	main(sys.argv)
