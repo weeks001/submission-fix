@@ -1,0 +1,4 @@
+tests_log.txt
+*.pyc
+*.swp
+.fuse_hidden*
