@@ -62,16 +62,16 @@ def main():
 		answer.append(os.path.join(base, '{test}', '{time}').format(test=testset0Paths[0],time=testset0Paths[2]))
 		answer.append(os.path.join(base, '{asm}').format(asm=testset0Paths[3]))
 
-	with tempTestDir(['', 'testing_set.zip'], answer) as result:
-		print 'I01 Paths Exist, No Flags: ' + str(result)
-	print "Tests Complete."
 
-	
+	with tempTestDir(['', 'testing_set.zip'], 'Integration 01 - Paths Exist, No Args', answer) as result:
+		print 'I01 Paths Exist, No Flags: ' + str(result)
+	print 'Tests Complete.'
+
 
 @contextmanager
-def tempTestDir(args, answer):
+def tempTestDir(args, test, answer):
 	with tempDirectory() as path:
-		with integrationContentsTest(args, path, answer) as result:
+		with integrationContentsTest(args, path, test, answer) as result:
 			yield result
 		
 @contextmanager
@@ -84,25 +84,36 @@ def tempDirectory():
 
 @contextmanager
 def suppressOutput():
-	with open(os.devnull, "w") as devnull:
+	with open(os.devnull, 'w') as devnull:
 		oldstdout = sys.stdout
 		sys.stdout = devnull
 		yield
 		sys.stdout = oldstdout
 
 @contextmanager
-def integrationContentsTest(args, path, answer):
+def integrationContentsTest(args, path, test, answer):
 	# Move testing zip to temporary testing folder and change to that folder.
 	shutil.copy(os.path.abspath('testing_set.zip'), path)
+	base = os.getcwd()
 	os.chdir(path)
 	with suppressOutput():
 		SubmissionFix.main(args)
-	yield existingPathsTest(answer)
+	yield existingPathsTest(base, test, answer)
 	# raise ValueError('Stopping because I said so.')
 
-
-def existingPathsTest(paths):
+def existingPathsTest(base, test, paths):
+	logTest(base, test, ['[' + str(os.path.exists(p)) + ']  ' + p + '\n' for p in paths])
 	return all([os.path.exists(p) for p in paths])	
+
+def logTest(base, name, results):
+	temp = os.getcwd()
+	os.chdir(base)
+	with open('tests_log.txt', 'a') as f:
+		header = "==================================\n{testname}\n==================================\n"
+		f.write(header.format(testname=name))
+		for r in results:
+			f.write(r)
+	os.chdir(temp)
 
 
 
