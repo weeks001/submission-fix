@@ -177,8 +177,8 @@ def extractBulk(zippy, students=[], directory=os.getcwd()):
 		Path of newly created directory with extracted files
 	"""
 
-	print "subfix extract: " + os.getcwd()
-	print "subfix extract dir: " + directory
+	# print "subfix extract: " + os.getcwd()
+	# print "subfix extract dir: " + directory
 
 	print "Decompressing " + zippy
 	zfile = zipfile.ZipFile(zippy)
