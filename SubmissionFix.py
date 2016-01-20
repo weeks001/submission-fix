@@ -265,7 +265,7 @@ class TSquare(AssignmentManager):
                     path = os.path.join(source, files)
                     shutil.move(path, dest)
                 os.rmdir(source)
-                self.extract(dest)
+                extract(dest)
 
             #move student folder out of the root archive folder
             if out :

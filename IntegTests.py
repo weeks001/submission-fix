@@ -101,8 +101,10 @@ class TestSubfixIntegration(unittest.TestCase):
 		path = os.path.abspath('test_folder')
 		if not os.path.exists(path):
 			os.makedirs(path)
-		yield path
-		shutil.rmtree(path)
+		try:
+			yield path
+		finally:
+			shutil.rmtree(path)
 
 	@contextmanager
 	def suppressOutput(self):
@@ -119,8 +121,10 @@ class TestSubfixIntegration(unittest.TestCase):
 		os.chdir(path)
 		with self.suppressOutput():
 			SubmissionFix.main(args)
-		yield self.existingPathsTest(base, test, answer)
-		os.chdir(base)
+		try:
+			yield self.existingPathsTest(base, test, answer)
+		finally:
+			os.chdir(base)
 
 	def existingPathsTest(self, base, test, paths):
 		self.logTest(base, test, ['[{exists}]  {path}\n'.format(exists=str(os.path.exists(p)), path=p) for p in paths])
