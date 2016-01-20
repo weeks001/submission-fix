@@ -158,7 +158,7 @@ class AssignmentManager(object):
 
 class TSquare(AssignmentManager):
 
-    def __init__(self, duetime):
+    def __init__(self, duetime=None):
         self.duetime = duetime
 
     def extractBulk(self, zippy, students=[], directory=os.getcwd()):
@@ -208,7 +208,7 @@ class TSquare(AssignmentManager):
 
     def _getFilePaths(self, folder):
         for name in os.listdir(folder):
-            if os.path.isfile(os.path.join(folder, name))
+            if os.path.isfile(os.path.join(folder, name)):
                 yield os.path.join(folder, name)
 
     def _checkTimeStamp(self, student, strayFiles):
@@ -241,7 +241,7 @@ class TSquare(AssignmentManager):
         for path in strayFiles :
             shutil.move(path, dest)
 
-        _moveFeedbackAttachments(source, dest)
+        self._moveFeedbackAttachments(source, dest)
 
     def _extractSubmissionAttachments(self, studentFolder):
         #move submission attachments out of folder into student name folder and extract
@@ -255,12 +255,12 @@ class TSquare(AssignmentManager):
 
     def _processStudentFolder(self, studentFolder):
         #move timey, comments, feedbackText, submissionText to Text folder
-        strayFiles = list(_getFilePaths(studentFolder))
+        strayFiles = list(self._getFilePaths(studentFolder))
 
         lateStatus = self._checkTimeStamp(os.path.basename(studentFolder), strayFiles)
 
-        _moveStrayFiles(studentFolder, strayFiles)
-        _extractSubmissionAttachments(studentFolder)
+        self._moveStrayFiles(studentFolder, strayFiles)
+        self._extractSubmissionAttachments(studentFolder)
 
         return lateStatus
 
@@ -291,7 +291,7 @@ class TSquare(AssignmentManager):
         for fn in os.listdir(directory) :
             studentFolder = os.path.join(directory, fn)
             if os.path.isdir(studentFolder) :
-                lateStatus = _processStudentFolder(studentFolder)
+                lateStatus = self._processStudentFolder(studentFolder)
                 if lateStatus:
                     late.append(lateStatus)
 
