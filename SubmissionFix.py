@@ -158,6 +158,9 @@ class AssignmentManager(object):
 
 class TSquare(AssignmentManager):
 
+    def __init__(self, duetime):
+        self.duetime = duetime
+
     def extractBulk(self, zippy, students=[], directory=os.getcwd()):
         # print "subfix extract: " + os.getcwd()
         # print "subfix extract dir: " + directory
@@ -201,9 +204,67 @@ class TSquare(AssignmentManager):
             path = os.path.join(directory, fn)
             end = os.path.basename(os.path.normpath(path))
             new = str(os.path.dirname(path) + os.sep + end[:end.find('(')])
-            os.rename(path, new)    
+            os.rename(path, new)  
 
-    def move(self, directory, out, duetime=0):
+    def _getFilePaths(self, folder):
+        for name in os.listdir(folder):
+            if os.path.isfile(os.path.join(folder, name))
+                yield os.path.join(folder, name)
+
+    def _checkTimeStamp(self, student, strayFiles):
+        if not self.duetime:
+            return None
+
+        for path in strayFiles:
+            #check to see if the student's submission was late
+            if os.path.basename(path) == 'timestamp.txt' :
+                f = open(path, 'r')
+                stamp = f.read()
+                f.close()
+                subtime = self.stripTime(stamp)
+
+                if not subtime <= self.duetime :
+                    fmt = '%m/%d/%Y  %H:%M'
+                    return " " + subtime.strftime(fmt) + "    " + student
+        print "Warning: No timestamp found for " + student
+
+    def _moveFeedbackAttachments(self, source, dest):
+        path = os.path.join(source, "Feedback Attachment(s)")
+        if os.path.isdir(path):
+            shutil.move(path, dest)      
+  
+    def _moveStrayFiles(self, source, strayFiles):
+        dest = os.path.join(source, "Text")
+        if not os.path.exists(dest) :
+            os.makedirs(dest)
+
+        for path in strayFiles :
+            shutil.move(path, dest)
+
+        _moveFeedbackAttachments(source, dest)
+
+    def _extractSubmissionAttachments(self, studentFolder):
+        #move submission attachments out of folder into student name folder and extract
+        source = os.path.join(studentFolder, "Submission attachment(s)")
+        #check if folder exists
+        for files in os.listdir(source) :
+            path = os.path.join(source, files)
+            shutil.move(path, studentFolder)
+        os.rmdir(source)
+        extract(studentFolder)
+
+    def _processStudentFolder(self, studentFolder):
+        #move timey, comments, feedbackText, submissionText to Text folder
+        strayFiles = list(_getFilePaths(studentFolder))
+
+        lateStatus = self._checkTimeStamp(os.path.basename(studentFolder), strayFiles)
+
+        _moveStrayFiles(studentFolder, strayFiles)
+        _extractSubmissionAttachments(studentFolder)
+
+        return lateStatus
+
+    def move(self, directory, out):
         """Moves all files in "Submission attachment(s)" up a level
 
         All files in student's main folder (timestamp.txt, comments.txt, etc) are moved to the 
@@ -228,54 +289,19 @@ class TSquare(AssignmentManager):
 
         late = []
         for fn in os.listdir(directory) :
-            name = fn
-            if os.path.isdir(os.path.join(directory, fn)) :
-                #move timey, comments, feedbackText, submissionText to Text folder
-                source = os.path.join(directory, fn)
-                dest = os.path.join(source, "Text")
-
-                if not os.path.exists(dest) :
-                    os.makedirs(dest)
-
-                for files in os.listdir(source) :
-                    if os.path.isfile(os.path.join(source, files)) :
-                        path = os.path.join(source, files)
-
-                        #check to see if the student's submission was late
-                        if duetime and os.path.basename(path) == 'timestamp.txt' :
-                            f = open(path, 'r')
-                            stamp = f.read()
-                            f.close()
-                            subtime = self.stripTime(stamp)
-
-                            if not subtime <= duetime :
-                                fmt = '%m/%d/%Y  %H:%M'
-                                late.append(" " + subtime.strftime(fmt) + "    " + name)
-
-                        shutil.move(path, dest)
-                path = os.path.join(source, "Feedback Attachment(s)")
-                if os.path.isdir(path) :
-                    shutil.move(path, dest)
-
-                #move submission attachments out of folder into student name folder and extract
-                dest = os.path.join(directory, fn)
-                source = os.path.join(dest, "Submission attachment(s)")
-                #check if folder exists
-                for files in os.listdir(source) :
-                    path = os.path.join(source, files)
-                    shutil.move(path, dest)
-                os.rmdir(source)
-                extract(dest)
+            studentFolder = os.path.join(directory, fn)
+            if os.path.isdir(studentFolder) :
+                lateStatus = _processStudentFolder(studentFolder)
+                if lateStatus:
+                    late.append(lateStatus)
 
             #move student folder out of the root archive folder
             if out :
-                source = directory
                 #check if directory has slash
-                dest, extra = os.path.split(directory)
-                path = os.path.join(source, fn)
-                shutil.move(path, dest)
+                dest = os.path.dirname(directory)
+                shutil.move(studentFolder, dest)
         if out :        
-            os.rmdir(source)
+            os.rmdir(directory)
 
         return late
 
@@ -318,12 +344,13 @@ def main(sysargs):
 
     args = parser.parse_args(sysargs[1:])
 
-    manager = TSquare()
 
     zippy = args.bulksubmission
     late = []
 
     print "subfix main: " + os.getcwd()
+
+    duetime = None
 
     #submit time input
     if args.time :
@@ -333,6 +360,8 @@ def main(sysargs):
             duetime = datetime.strptime(args.time[0] + " " + args.time[1], "%m/%d/%y %H:%M")
             eastern = timezone('US/Eastern')
             duetime = eastern.localize(duetime)
+
+    manager = TSquare(duetime)
 
     #csv file input
     if args.csv :
