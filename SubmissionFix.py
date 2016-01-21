@@ -30,14 +30,12 @@ except ImportError :
     findTime = False
 
 
-#TODO: add test cases so I stop missing simple mistakes
 #TODO: handle directory collisions by prompting user
 #TODO: copy in grading files when extracting
 #TODO: report no submissions (check if Submitted Files directory is empty)
 
 #TODO: look into 7zip functionality
 #TODO: collapse directories with only one folder inside and no files
-#TODO: break up these functions: main, move
 
 def requiredLength(nargs):
     """Checks that input arguments for given flag are of the specified number.
@@ -87,9 +85,8 @@ def unzip(directory, zippy):
     """
     print "Unzipping " + zippy
     zfile = zipfile.ZipFile(zippy)
-    for name in zfile.namelist() :
-        dirname = directory
-        zfile.extract(name, dirname)
+    for filename in zfile.namelist() :
+        zfile.extract(filename, directory)
     os.remove(zippy)
 
 
@@ -161,33 +158,51 @@ class TSquare(AssignmentManager):
     def __init__(self, duetime=None):
         self.duetime = duetime
 
-    def extractBulk(self, zippy, students=[], directory=os.getcwd()):
+    def extractBulk(self, zippy, students=None, directory=None):
         # print "subfix extract: " + os.getcwd()
         # print "subfix extract dir: " + directory
-
         print "Decompressing " + zippy
+        directory = directory or os.getcwd()
+        students = students or []
+
+        self._createPath(directory)
+        
         zfile = zipfile.ZipFile(zippy)
+        filelist = self._findStudentsToExtract(zfile.namelist(), students)
+        for filename in filelist:
+            zfile.extract(filename, directory)
 
-        for name in zfile.namelist() :
-            #check if student list csv file was input
-            if students :
-                #get student name out of path
-                sname = name.split(os.sep)[1].split('(')[0]
-                #check if any student in students is in the student string
-                if not any([s == sname.upper() for s in students]) :
-                    continue
+        return os.path.join(directory, filename[:filename.find(os.sep)])
 
-            dirname = directory        #set directory for extraction
-            if not os.path.exists(dirname) :
-                os.makedirs(dirname)
-            zfile.extract(name, dirname)
+    def _createPath(self, path):
+        if not os.path.exists(path):
+            try:
+                os.makedirs(path)
+            except OSError:
+                print "Error: Path already exists."
+                self._handleCollision(path)
 
+    def _handleCollision(self, path):
+        #ask user to overwrite path, enter new path, or cancel
+        s = raw_input("Overwrite path structure? (Y/N)")
+        if s.upper() not in ['Y', 'YES']:
+            sys.exit("User Abort. Collision on path: " + path)
 
-        if not directory.endswith(os.sep) :
-            directory += os.sep
+        try:
+            shutil.rmtree(path)
+            os.makedirs(path)
+        except OSError:
+            sys.exit("Error: Unable to remove path: " + path)
 
-        directory += name[:name.find(os.sep)]
-        return directory
+        
+    def _findStudentsToExtract(self, filelist, students):
+        #return list of files to extract
+        extractFiles = []
+        for filename in filelist:
+            student = filename.split(os.sep)[1].split('(')[0]
+            if any([s == student.upper() for s in students]):
+                extractFiles.append(filename)
+        return extractFiles
 
     def rename(self, directory):
         """Renames all student folders to their names
@@ -198,7 +213,7 @@ class TSquare(AssignmentManager):
         Args:
             directory: directory with student submission folders
         """
-
+        
         print "Renaming files..."
         for fn in os.listdir(directory) :
             path = os.path.join(directory, fn)
@@ -366,14 +381,7 @@ def main(sysargs):
     #csv file input
     if args.csv :
         students = manager.readCSV(args.csv)
-        if args.path :        #csv and extraction path input
-            if not os.path.exists(args.path) :
-                os.makedirs(args.path)
-            if not args.path.endswith(os.sep) :
-                args.path += os.sep
-            directory = manager.extractBulk(zippy, students, args.path)
-        else :
-            directory = manager.extractBulk(zippy, students)
+        directory = manager.extractBulk(zippy, students, args.path)
 
     #extraction path input
     elif args.path :
