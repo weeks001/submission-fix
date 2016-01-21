@@ -65,7 +65,7 @@ def extract(directory):
     Args:
         directory: directory to be searched for archive files
     """
-    print "Looking for compressed files..."
+
     for fn in os.listdir(directory) :
         if fn.endswith('.zip') :
             unzip(directory, os.path.join(directory, fn))
@@ -83,7 +83,7 @@ def unzip(directory, zippy):
         directory: directory where files will be extracted to
         zippy: zip file to unzip
     """
-    print "Unzipping " + zippy
+
     zfile = zipfile.ZipFile(zippy)
     for filename in zfile.namelist() :
         zfile.extract(filename, directory)
@@ -102,12 +102,49 @@ def untar(directory, tarry):
 
     Tested on .tar.gz. Unsure if this will work on other tar files. 
     """
-    print "Extracting " + tarry
+
     tar = tarfile.open(tarry)
     tar.extractall(directory)
     tar.close()
     os.remove(tarry)
 
+def prepareTimeCheck(time):
+    if not findTime :
+        print "\nModule pytz not found. To use the late submission checking feature, please install pytz.\n"
+        return None
+
+    duetime = datetime.strptime(time[0] + " " + time[1], "%m/%d/%y %H:%M")
+    eastern = timezone('US/Eastern')
+    duetime = eastern.localize(duetime)
+    return duetime
+    
+
+def tSquareFixUp(zipfile, path, move, csv, time):
+    duetime = None
+    if time:
+        duetime = prepareTimeCheck(time)
+
+    manager = TSquare(duetime)
+
+    if csv :
+        manager.students = manager.readCSV(csv)
+
+    if path :
+        manager.createPath(path)
+
+    print "Extracting bulk submissions."
+    directory = manager.extractBulk(zipfile, directory=path) 
+    print "Renaming student folders" 
+    manager.rename(directory)
+    print "Moving submission files."
+    late = manager.move(directory, move)
+
+    #print late submissions
+    if findTime and time and not late:
+        print "\n\nNo Late Submissions \n "    
+    if late :
+        print "\n\nLate Submissions: "
+        print '\n'.join(late)
 
 class AssignmentManager(object):
 
@@ -141,7 +178,6 @@ class AssignmentManager(object):
             A list of student names to grade, all in uppercase.
         """
 
-        print "Reading spreadsheet..."
         students = []
         with open(csvfile, 'rb') as f :
             reader = csv.reader(f, delimiter=';')
@@ -153,14 +189,13 @@ class AssignmentManager(object):
 
         return students
 
-    def _createPath(self, path):
+    def createPath(self, path):
         if os.path.abspath('.') != os.path.abspath(path):
             try:
                 os.makedirs(path)
             except OSError:
                 print "Error: Path already exists."
                 self._handleCollision(path)
-        return os.path.abspath(path)
 
     def _handleCollision(self, path):
         #ask user to overwrite path, enter new path, or cancel
@@ -176,15 +211,15 @@ class AssignmentManager(object):
 
 class TSquare(AssignmentManager):
 
-    def __init__(self, duetime=None):
+    def __init__(self, duetime=None, students=None):
         self.duetime = duetime
+        self.students = students
 
-    def extractBulk(self, zippy, students=None, directory=None):
+    def extractBulk(self, zippy, directory=None):
         # print "subfix extract: " + os.getcwd()
         # print "subfix extract dir: " + directory
-        print "Decompressing " + zippy
         directory = directory or os.getcwd()
-        students = students or []
+        students = self.students or []
 
         zfile = zipfile.ZipFile(zippy)
         filelist = zfile.namelist()
@@ -219,7 +254,6 @@ class TSquare(AssignmentManager):
             directory: directory with student submission folders
         """
 
-        print "Renaming files..."
         for fn in os.listdir(directory) :
             path = os.path.join(directory, fn)
             end = os.path.basename(os.path.normpath(path))
@@ -363,55 +397,10 @@ def main(sysargs):
         sys.exit(1)
 
     args = parser.parse_args(sysargs[1:])
-    zippy = args.bulksubmission
-    late = []
-    duetime = None
 
-    #submit time input
-    if args.time :
-        if not findTime :
-            print "\nModule pytz not found. To use the late submission checking feature, please install pytz.\n"
-        else :
-            duetime = datetime.strptime(args.time[0] + " " + args.time[1], "%m/%d/%y %H:%M")
-            eastern = timezone('US/Eastern')
-            duetime = eastern.localize(duetime)
-
-    manager = TSquare(duetime)
-
-    #csv file input
-    if args.csv :
-        students = manager.readCSV(args.csv)
-        directory = manager.extractBulk(zippy, students, args.path)
-
-    #extraction path input
-    elif args.path :
-        path = manager._createPath(args.path)
-        directory = manager.extractBulk(zippy, directory=path)
-    else :
-        # This makes the tests work. 
-        # The default value for extract bulk screws things up for some reason.
-        directory = manager.extractBulk(zippy, directory=os.getcwd())     
-
-    if not os.path.exists(directory) :
-        print "\nFailed to extract student folders." 
-        late = []
-    else :
-        manager.rename(directory)
-        if findTime and args.time:    
-            late = manager.move(directory, args.move, duetime)
-        else :
-            late = manager.move(directory, args.move)
-
-    #print late submissions
-    if findTime and not late and args.time:
-        print "\n\nNo Late Submissions \n "    
-    if late :
-        print "\n\nLate Submissions: "
-        print '\n'.join(late)
+    tSquareFixUp(args.bulksubmission, args.path, args.move, args.csv, args.time)
 
     print "\nDone"
-
-
 
 
 if __name__ == '__main__' :
