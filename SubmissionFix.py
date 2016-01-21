@@ -153,6 +153,27 @@ class AssignmentManager(object):
 
         return students
 
+    def _createPath(self, path):
+        if os.path.abspath('.') != os.path.abspath(path):
+            try:
+                os.makedirs(path)
+            except OSError:
+                print "Error: Path already exists."
+                self._handleCollision(path)
+        return os.path.abspath(path)
+
+    def _handleCollision(self, path):
+        #ask user to overwrite path, enter new path, or cancel
+        s = raw_input("Overwrite path structure for path: " + os.path.abspath(path) + " ? (Y/N)")
+        if s.upper() not in ['Y', 'YES']:
+            sys.exit("User Abort. Collision on path: " + os.path.abspath(path))
+
+        try:
+            shutil.rmtree(path)
+            os.makedirs(path)
+        except OSError:
+            sys.exit("Error: Unable to remove path: " + os.path.abspath(path))
+
 class TSquare(AssignmentManager):
 
     def __init__(self, duetime=None):
@@ -165,35 +186,17 @@ class TSquare(AssignmentManager):
         directory = directory or os.getcwd()
         students = students or []
 
-        self._createPath(directory)
-        
         zfile = zipfile.ZipFile(zippy)
-        filelist = self._findStudentsToExtract(zfile.namelist(), students)
+        filelist = zfile.namelist()
+
+        if students:
+            filelist = self._findStudentsToExtract(filelist, students)
+
         for filename in filelist:
             zfile.extract(filename, directory)
 
-        return os.path.join(directory, filename[:filename.find(os.sep)])
-
-    def _createPath(self, path):
-        if not os.path.exists(path):
-            try:
-                os.makedirs(path)
-            except OSError:
-                print "Error: Path already exists."
-                self._handleCollision(path)
-
-    def _handleCollision(self, path):
-        #ask user to overwrite path, enter new path, or cancel
-        s = raw_input("Overwrite path structure? (Y/N)")
-        if s.upper() not in ['Y', 'YES']:
-            sys.exit("User Abort. Collision on path: " + path)
-
-        try:
-            shutil.rmtree(path)
-            os.makedirs(path)
-        except OSError:
-            sys.exit("Error: Unable to remove path: " + path)
-
+        foldername = filelist[0][:filelist[0].find(os.sep)] 
+        return os.path.join(directory, foldername)
         
     def _findStudentsToExtract(self, filelist, students):
         #return list of files to extract
@@ -202,6 +205,8 @@ class TSquare(AssignmentManager):
             student = filename.split(os.sep)[1].split('(')[0]
             if any([s == student.upper() for s in students]):
                 extractFiles.append(filename)
+
+        print extractFiles
         return extractFiles
 
     def rename(self, directory):
@@ -213,7 +218,7 @@ class TSquare(AssignmentManager):
         Args:
             directory: directory with student submission folders
         """
-        
+
         print "Renaming files..."
         for fn in os.listdir(directory) :
             path = os.path.join(directory, fn)
@@ -358,13 +363,8 @@ def main(sysargs):
         sys.exit(1)
 
     args = parser.parse_args(sysargs[1:])
-
-
     zippy = args.bulksubmission
     late = []
-
-    print "subfix main: " + os.getcwd()
-
     duetime = None
 
     #submit time input
@@ -385,11 +385,8 @@ def main(sysargs):
 
     #extraction path input
     elif args.path :
-        if not os.path.exists(args.path) :
-            os.makedirs(args.path)
-        if not args.path.endswith(os.sep) :
-            args.path += os.sep
-        directory = manager.extractBulk(zippy, directory=args.path)
+        path = manager._createPath(args.path)
+        directory = manager.extractBulk(zippy, directory=path)
     else :
         # This makes the tests work. 
         # The default value for extract bulk screws things up for some reason.
