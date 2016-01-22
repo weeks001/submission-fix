@@ -37,23 +37,24 @@ class TestSubfixIntegration(unittest.TestCase):
 			self.assertTrue(result)
 
 	def test_pathExistsPath(self):
+		junkpath = os.path.join(os.getcwd(), 'NewFolder')
+		testfile = os.path.abspath('testingtxt1.txt')
 		answer = self.pathTestSetup(os.path.join('NewFolder','Homework 0'))
 		with self.tempTestDir(['', 'testing_set1.zip', '-pNewFolder'], 'Integration - Homework 0, -path', answer, 'testing_set1.zip') as result:
 			self.assertTrue(result)
 
 	#TODO: Initiallize folder with junk, provide feedback
-	# def test_pathExistsPathConflictY(self):
-	# 	answer = self.pathTestSetup(os.path.join('NewFolder','Homework 0'))
-	# 	with self.loadedTempTestDir(['', 'testing_set1.zip', '-pNewFolder'], 'Integration - Homework 0, -path Conflict Y', answer, 'testing_set1.zip') as result:
-	# 		self.assertTrue(result)
+	def test_pathExistsPathConflictY(self):
+		answer = self.pathTestSetup(os.path.join('NewFolder','Homework 0'))
+		with self.loadedTempTestDir(['', 'testing_set1.zip', '-pNewFolder'], 'Integration - Homework 0, -path Conflict Y', answer, 'testing_set1.zip', junkpath, testfile, 'y') as result:
+			self.assertTrue(result)
 
 	#TODO: Initiallize folder with junk, provide feedback
-	# @patch('__main__.get_input', return_value='n')
 	def test_pathExistsPathConflictN(self):
 		junkpath = os.path.join(os.getcwd(), 'NewFolder')
 		testfile = os.path.abspath('testingtxt1.txt')
 		answer = [os.path.abspath('testingtxt1.txt')]
-		with self.loadedTempTestDir(['', 'testing_set1.zip', '-pNewFolder'], 'Integration - Homework 0, -path Conflict N', answer, 'testing_set1.zip', junkpath, testfile) as result:
+		with self.loadedTempTestDir(['', 'testing_set1.zip', '-pNewFolder'], 'Integration - Homework 0, -path Conflict N', answer, 'testing_set1.zip', junkpath, testfile, 'n') as result:
 			self.assertTrue(result)
 
 	def test_pathExistsPathMove(self):
@@ -131,11 +132,6 @@ class TestSubfixIntegration(unittest.TestCase):
 			answer.append(os.path.join(base, '{asm}').format(asm=testset0Paths[3]))
 		return answer
 
-	def loadedTestSetup(self, root=''):
-		basePath = os.path.join(os.getcwd(), 'test_folder', 'NewFolder')
-		return [os.path.abspath('testingtxt1.txt')]
-
-
 	@contextmanager
 	def tempTestDir(self, args, test, answer, testset):
 		with self.tempDirectory() as path:
@@ -157,7 +153,7 @@ class TestSubfixIntegration(unittest.TestCase):
 	@contextmanager
 	def loadedTempTestDir(self, args, test, answer, testset, junkpath, files, choice):
 		with self.tempDirectory(junkpath, files) as path:
-			with self.integrationContentsTest(args, path, test, answer, testset, choice) as result:
+			with self.integrationOverwriteTest(args, path, test, answer, testset, choice) as result:
 				yield result
 
 
