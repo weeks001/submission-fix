@@ -22,6 +22,7 @@ import argparse
 import re
 import time
 
+
 try :
     from pytz import timezone
     import pytz
@@ -109,6 +110,15 @@ def untar(directory, tarry):
     os.remove(tarry)
 
 def prepareTimeCheck(time):
+    """Prepares user input timestamp for later use
+
+    Takes in a timestamp in the format 'mm/dd/yy HH:MM' to be used as a due date for an assignment and
+    converts it into a localized datetime object. This feature only works if the user has the pytz 
+    module installed. 
+
+    Args:
+        time: duedate timestamp in format 'mm/dd/yy HH:MM'
+    """
     if not findTime :
         print "\nModule pytz not found. To use the late submission checking feature, please install pytz.\n"
         return None
@@ -119,18 +129,19 @@ def prepareTimeCheck(time):
     return duetime
 
 class AssignmentManager(object):
+    """Manager to handle a given assignment submission and collection tool."""
 
     def extractBulk(self, zippy, students=[], directory=os.getcwd()):
-        """Extracts the bulk submission download.
+        """Handle extraction of bulk submission zip file.
 
-        By default, extracts the bulk submission zip to the working directory. If a directory to 
-        extract to is input, the zip with extract to that directory. If a csv file of student names 
-        is input, the zip will only extract those students' submissions.
+        Creates a list of paths out of the zip file. If a csv file was input, this list is shortened
+        using a list from the csv file. All paths within the list are extracted into the given path.
+        If no path is given, paths are extracted into the current working directory.
         
         Args:
             zippy: bulk submission zip file 
             students: list of student names to grade (optional)
-            directory: directory to extract zip to (optional, default: working directory)
+            directory: directory to extract zip into (optional, default: working directory)
 
         Returns:
             Path of newly created directory with extracted files
@@ -141,10 +152,10 @@ class AssignmentManager(object):
 
         Reads through csv file and appends each student name to a list, creating a list of lists.
         List comprehension transforms this into a single list of student names and converts each
-        name to uppercase (since T-Square sometimes has student names in uppercase). 
+        name to uppercase. A delimiter of ';' is used to allow commas in students name (ex. Doe, John).
 
         Args:
-            csvfile: csvfile with names of students to grade
+            csvfile: csvfile with names of students to grade, delimited with ';'
 
         Returns:
             A list of student names to grade, all in uppercase.
@@ -156,12 +167,19 @@ class AssignmentManager(object):
             for row in reader :
                 students.append(row)
 
-        #convert list[list[]] to list[], convert names to uppercase
         students = [s[0].upper() for s in students]
 
         return students
 
     def createPath(self, path):
+        """Create the input path.
+
+        As long as the entered path is not the current working directory, try to create the path. If 
+        this fails, report error and handle collision.
+
+        Args:
+            path: path to be created (relative to cwd unless otherwise stated)
+        """
         if os.path.abspath('.') != os.path.abspath(path):
             try:
                 os.makedirs(path)
@@ -170,7 +188,8 @@ class AssignmentManager(object):
                 self._handleCollision(path)
 
     def _handleCollision(self, path):
-        #ask user to overwrite path, enter new path, or cancel
+        """Poll user to overwrite path structure or cancel."""
+
         s = raw_input("Overwrite path structure for path: " + os.path.abspath(path) + " ? (Y/N)")
         if s.upper() not in ['Y', 'YES']:
             sys.exit("User Abort. Collision on path: " + os.path.abspath(path))
@@ -182,9 +201,12 @@ class AssignmentManager(object):
             sys.exit("Error: Unable to remove path: " + os.path.abspath(path))
 
 class TSquare(AssignmentManager):
+    """Manager to handle T-Square submissions."""
 
     @classmethod
     def execute(cls, zipfile, path, move, csv, time):
+        """Run all neccessary fix up functions for T-Square submissions."""
+
         duetime = None
         if time:
             duetime = prepareTimeCheck(time)
@@ -204,7 +226,6 @@ class TSquare(AssignmentManager):
         print "Moving submission files."
         late = manager.move(directory, move)
 
-        #print late submissions
         if findTime and time and not late:
             print "\n\nNo Late Submissions \n "    
         if late :
@@ -216,8 +237,8 @@ class TSquare(AssignmentManager):
         self.students = students
 
     def extractBulk(self, zippy, directory=None):
-        # print "subfix extract: " + os.getcwd()
-        # print "subfix extract dir: " + directory
+        """Handle extraction of bulk submission zip file."""
+
         directory = directory or os.getcwd()
         students = self.students or []
 
@@ -234,7 +255,8 @@ class TSquare(AssignmentManager):
         return os.path.join(directory, foldername)
         
     def _findStudentsToExtract(self, filelist, students):
-        #return list of files to extract
+        """Given list of paths and students, return list of which paths to be extracted."""
+
         extractFiles = []
         for filename in filelist:
             student = filename.split(os.sep)[1].split('(')[0]
@@ -243,10 +265,7 @@ class TSquare(AssignmentManager):
         return extractFiles
 
     def rename(self, directory):
-        """Renames all student folders to their names
-
-        Renames student folders in the given directory by removing the hashcode nonsense at the 
-        end of the folder name. 
+        """Renames all student folders in directory to their names.
 
         Args:
             directory: directory with student submission folders
@@ -259,16 +278,19 @@ class TSquare(AssignmentManager):
             os.rename(path, new)  
 
     def _getFilePaths(self, folder):
+        """Returns file paths within a given folder."""
+
         for name in os.listdir(folder):
             if os.path.isfile(os.path.join(folder, name)):
                 yield os.path.join(folder, name)
 
     def _checkTimeStamp(self, student, strayFiles):
+        """Finds timestamp in student folder and returns the student and time if past given duedate."""
+
         if not self.duetime:
             return None
 
         for path in strayFiles:
-            #check to see if the student's submission was late
             if os.path.basename(path) == 'timestamp.txt' :
                 f = open(path, 'r')
                 stamp = f.read()
@@ -277,15 +299,20 @@ class TSquare(AssignmentManager):
 
                 if not subtime <= self.duetime :
                     fmt = '%m/%d/%Y  %H:%M'
-                    return " " + subtime.strftime(fmt) + "    " + student
+                    return (subtime.strftime(fmt), student)
+                return None
         print "Warning: No timestamp found for " + student
 
     def _moveFeedbackAttachments(self, source, dest):
+        """Moves the Feedback Attachment(s) folder."""
+
         path = os.path.join(source, "Feedback Attachment(s)")
         if os.path.isdir(path):
             shutil.move(path, dest)      
   
     def _moveStrayFiles(self, source, strayFiles):
+        "Creates a 'Text' directory and moves non-assignment files to it."
+
         dest = os.path.join(source, "Text")
         if not os.path.exists(dest) :
             os.makedirs(dest)
@@ -296,9 +323,9 @@ class TSquare(AssignmentManager):
         self._moveFeedbackAttachments(source, dest)
 
     def _extractSubmissionAttachments(self, studentFolder):
-        #move submission attachments out of folder into student name folder and extract
+        """Moves assignment files out of Submission Attachment(s) folder, removes folder, and extracts files if needed."""
+        
         source = os.path.join(studentFolder, "Submission attachment(s)")
-        #check if folder exists
         for files in os.listdir(source) :
             path = os.path.join(source, files)
             shutil.move(path, studentFolder)
@@ -306,7 +333,7 @@ class TSquare(AssignmentManager):
         extract(studentFolder)
 
     def _processStudentFolder(self, studentFolder):
-        #move timey, comments, feedbackText, submissionText to Text folder
+        """Collects and moves stray files, checks for late status, and handles submission files."""
         strayFiles = list(self._getFilePaths(studentFolder))
 
         lateStatus = self._checkTimeStamp(os.path.basename(studentFolder), strayFiles)
@@ -317,26 +344,18 @@ class TSquare(AssignmentManager):
         return lateStatus
 
     def move(self, directory, out):
-        """Moves all files in "Submission attachment(s)" up a level
+        """Processes each student folder.
 
-        All files in student's main folder (timestamp.txt, comments.txt, etc) are moved to the 
-        newly created directory Text. If duetime was set, the submission time in timestamp.txt 
-        will be compared to the duetime. If the submission time is after the duetime, the 
-        student's name and submission time will be added to the late list, to be returned at the
-        end. "Feedback Attachment(s)" folder is also moved to Text. All files within "Submission 
-        attachment(s)" are moved up to the student's main folder. Empty "Submission attachment(s)" 
-        folder is deleted. extract() is called to extract any zip or tar files the student submitted. 
-        If "out" is true, the student folders will be moved out the root arcive folder and up one 
-        level in the directory tree. Useful for having fewer nested folders if you specify an 
-        extraction folder.
+        Goes through each folder in the given directory and processes it. If late status is being checked
+        a list returned with the late students for that assignment. If out is specified, all student
+        folders are moved outside of the base assignment directory. That directory is then removed.
 
         Args:
             directory: directory with student submission folders
-            out: flag for moving the student folder out of the archive folder
-            duetime: US/Eastern timezone aware due date time to compare submission times to
+            out: flag for moving the student folders out of the assignment directory
 
         Returns:
-            late: list of students whose submissions where after the due date. Empty if duetime is zero.
+            late: list of students who submitted past the duedate. Empty if duetime is zero.
         """
 
         late = []
@@ -345,11 +364,9 @@ class TSquare(AssignmentManager):
             if os.path.isdir(studentFolder) :
                 lateStatus = self._processStudentFolder(studentFolder)
                 if lateStatus:
-                    late.append(lateStatus)
+                    late.append('  {timestamp}    {student}'.format(timestamp=lateStatus[0], student=(lateStatus[1])))
 
-            #move student folder out of the root archive folder
             if out :
-                #check if directory has slash
                 dest = os.path.dirname(directory)
                 shutil.move(studentFolder, dest)
         if out :        
@@ -369,7 +386,7 @@ class TSquare(AssignmentManager):
         Returns:
             subtime: US/Eastern timezone aware submission time
         """
-        rawtime = re.compile(r"^(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})")        #YYYYmmddHHMMsssss
+        rawtime = re.compile(r"^(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})")
         timey = rawtime.search(stamp).groups()        # ('YYYY', 'mm', 'dd', 'HH', 'mm')
         timelist = list(timey)
         timey = '-'.join(timelist)
@@ -387,8 +404,8 @@ def main(sysargs):
     parser.add_argument('-p', '--path', help='extraction path for bulk submissions zip')
     parser.add_argument('-m', '--move', help='move student folders out of archive root folder', action='store_true')
     parser.add_argument('-t', '--time', help=('Flag late submissions past due date. Requires due date and time. '
-                                              'Checks submissions using the US/Eastern timezone. Requires pytz to use.'), nargs='+', action=requiredLength(2), metavar=('mm/dd/yy', 'hh:mm'))
-    # parser.add_argument('-f', '--files', help='copy grading files into students' submission', )
+                                              'Checks submissions using the US/Eastern timezone. Requires pytz to use.'), 
+                                        nargs='+', action=requiredLength(2), metavar=('mm/dd/yy', 'hh:mm'))
 
     if len(sysargs) == 1 :
         parser.print_help()

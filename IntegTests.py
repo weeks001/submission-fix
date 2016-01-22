@@ -74,19 +74,19 @@ class TestSubfixIntegration(unittest.TestCase):
 
 	def test_pathExistsPathParens(self):
 		answer = self.pathTestSetup(os.path.join('NewFolder','Homework 0 (Malloc)'))
-		self.tempTestDir(['', 'testing_set2.zip', '-pNewFolder'], 'Integration - Homework 0, -path', answer, 'testing_set2.zip')
+		self.tempTestDir(['', 'testing_set2.zip', '-p','NewFolder'], 'Integration - Homework 0, -path', answer, 'testing_set2.zip')
 
 	def test_pathExistsPathMoveParens(self):
 		answer = self.pathTestSetup('NewFolder')
 		self.tempTestDir(['', 'testing_set2.zip', '-pNewFolder', '-m'], 'Integration - Homework 0, -path -move', answer, 'testing_set2.zip')
 
 	#Other tests
-	#TODO: Figure out how to do this test
-	# def test_lateStudentsListed(self):
-	# 	students = []
-	# 	self.lateTempTestDir(['', 'testing_set1.zip', '-t'], 'Integration - Homework 0, -csv', 'testing_set1.zip', students)
+	def test_lateStudentsListed(self):
+		students = ['Fox, Grey', 'Ling, Mei']
+		self.lateTempTestDir(['testing_set1.zip', '-t', '02/28/05','23:55'], 'Integration - Homework 0, -time', 'testing_set1.zip', students)
 
 
+	#Testing functions and setup
 	def pathTestSetup(self, root=None, testsetNames=None):
 		basePath = os.path.join(os.getcwd(), 'test_folder')
 		if root:
@@ -125,7 +125,7 @@ class TestSubfixIntegration(unittest.TestCase):
 	@contextmanager
 	def lateTempTestDir(self, args, test, testset, lateStudents):
 		with self.tempDirectory() as path:
-			self.assertTrue(self.integrationLateTest(args, path, test, answer, testset, lateStudents))
+			self.assertTrue(self.integrationLateTest(args, path, test, testset, lateStudents))
 			
 	@contextmanager
 	def tempDirectory(self, junkpath=None, files=None):
@@ -183,9 +183,11 @@ class TestSubfixIntegration(unittest.TestCase):
 		shutil.copy(os.path.abspath(testset), path)
 		submissionScript = os.path.abspath('SubmissionFix.py')
 		with self.inDirectory(path):
+			# import pdb; pdb.set_trace();
 			p = Popen(['python', submissionScript] + args, stdout=PIPE, stderr=PIPE)
 			out, err = p.communicate()
 			p.wait()
+		self.logTest(os.getcwd(), test, ['[{status}]  {message}\n'.format(status=any([s in out for s in lateStudents]), message=m) for m in out])
 		return all([student in out for student in lateStudents])
 
 	def existingPathsTest(self, base, test, paths):

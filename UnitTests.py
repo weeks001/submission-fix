@@ -57,10 +57,6 @@ class TestSubfixMethods(unittest.TestCase):
 		answer = datetime.datetime(2005,02,27,22,30) 
 		self.assertEqual(SubmissionFix.TSquare().stripTime('20050228033012345'), eastern.localize(answer))
 
-
-    #prepareTimeCheck
-    #_findStudentsToExtract
-
 if __name__ == '__main__' :
 	suite = unittest.TestLoader().loadTestsFromTestCase(TestSubfixMethods)
 	unittest.TextTestRunner(verbosity=2).run(suite)
