@@ -117,34 +117,6 @@ def prepareTimeCheck(time):
     eastern = timezone('US/Eastern')
     duetime = eastern.localize(duetime)
     return duetime
-    
-
-def tSquareFixUp(zipfile, path, move, csv, time):
-    duetime = None
-    if time:
-        duetime = prepareTimeCheck(time)
-
-    manager = TSquare(duetime)
-
-    if csv :
-        manager.students = manager.readCSV(csv)
-
-    if path :
-        manager.createPath(path)
-
-    print "Extracting bulk submissions."
-    directory = manager.extractBulk(zipfile, directory=path) 
-    print "Renaming student folders" 
-    manager.rename(directory)
-    print "Moving submission files."
-    late = manager.move(directory, move)
-
-    #print late submissions
-    if findTime and time and not late:
-        print "\n\nNo Late Submissions \n "    
-    if late :
-        print "\n\nLate Submissions: "
-        print '\n'.join(late)
 
 class AssignmentManager(object):
 
@@ -211,6 +183,34 @@ class AssignmentManager(object):
 
 class TSquare(AssignmentManager):
 
+    @classmethod
+    def execute(cls, zipfile, path, move, csv, time):
+        duetime = None
+        if time:
+            duetime = prepareTimeCheck(time)
+
+        manager = cls(duetime)
+
+        if csv :
+            manager.students = manager.readCSV(csv)
+
+        if path :
+            manager.createPath(path)
+
+        print "Extracting bulk submissions."
+        directory = manager.extractBulk(zipfile, directory=path) 
+        print "Renaming student folders" 
+        manager.rename(directory)
+        print "Moving submission files."
+        late = manager.move(directory, move)
+
+        #print late submissions
+        if findTime and time and not late:
+            print "\n\nNo Late Submissions \n "    
+        if late :
+            print "\n\nLate Submissions: "
+            print '\n'.join(late)
+
     def __init__(self, duetime=None, students=None):
         self.duetime = duetime
         self.students = students
@@ -230,7 +230,7 @@ class TSquare(AssignmentManager):
         for filename in filelist:
             zfile.extract(filename, directory)
 
-        foldername = filelist[0][:filelist[0].find(os.sep)] 
+        foldername, _ = filelist[0].split(os.sep, 1)
         return os.path.join(directory, foldername)
         
     def _findStudentsToExtract(self, filelist, students):
@@ -396,7 +396,7 @@ def main(sysargs):
 
     args = parser.parse_args(sysargs[1:])
 
-    tSquareFixUp(args.bulksubmission, args.path, args.move, args.csv, args.time)
+    TSquare.execute(args.bulksubmission, args.path, args.move, args.csv, args.time)
 
     print "\nDone"
 

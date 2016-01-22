@@ -28,76 +28,60 @@ class TestSubfixIntegration(unittest.TestCase):
 	#Normal tests
 	def test_pathExistsNoFlags(self):
 		answer = self.pathTestSetup('Homework 0')
-		with self.tempTestDir(['', 'testing_set1.zip'], 'Integration - Homework 0, No flags', answer, 'testing_set1.zip') as result:
-			self.assertTrue(result)
+		self.tempTestDir(['', 'testing_set1.zip'], 'Integration - Homework 0, No flags', answer, 'testing_set1.zip')
 
 	def test_pathExistsMove(self):
 		answer = self.pathTestSetup()
-		with self.tempTestDir(['', 'testing_set1.zip', '-m'], 'Integration - Homework 0, -move', answer, 'testing_set1.zip') as result:
-			self.assertTrue(result)
+		self.tempTestDir(['', 'testing_set1.zip', '-m'], 'Integration - Homework 0, -move', answer, 'testing_set1.zip')
 
 	def test_pathExistsPath(self):
+		answer = self.pathTestSetup(os.path.join('NewFolder','Homework 0'))
+		self.tempTestDir(['', 'testing_set1.zip', '-pNewFolder'], 'Integration - Homework 0, -path', answer, 'testing_set1.zip')
+
+	def test_pathExistsPathConflictY(self):
 		junkpath = os.path.join(os.getcwd(), 'NewFolder')
 		testfile = os.path.abspath('testingtxt1.txt')
 		answer = self.pathTestSetup(os.path.join('NewFolder','Homework 0'))
-		with self.tempTestDir(['', 'testing_set1.zip', '-pNewFolder'], 'Integration - Homework 0, -path', answer, 'testing_set1.zip') as result:
-			self.assertTrue(result)
+		self.loadedTempTestDir(['', 'testing_set1.zip', '-pNewFolder'], 'Integration - Homework 0, -path Conflict Y', answer, 'testing_set1.zip', junkpath, testfile, 'y')
 
-	#TODO: Initiallize folder with junk, provide feedback
-	def test_pathExistsPathConflictY(self):
-		answer = self.pathTestSetup(os.path.join('NewFolder','Homework 0'))
-		with self.loadedTempTestDir(['', 'testing_set1.zip', '-pNewFolder'], 'Integration - Homework 0, -path Conflict Y', answer, 'testing_set1.zip', junkpath, testfile, 'y') as result:
-			self.assertTrue(result)
-
-	#TODO: Initiallize folder with junk, provide feedback
 	def test_pathExistsPathConflictN(self):
 		junkpath = os.path.join(os.getcwd(), 'NewFolder')
 		testfile = os.path.abspath('testingtxt1.txt')
 		answer = [os.path.abspath('testingtxt1.txt')]
-		with self.loadedTempTestDir(['', 'testing_set1.zip', '-pNewFolder'], 'Integration - Homework 0, -path Conflict N', answer, 'testing_set1.zip', junkpath, testfile, 'n') as result:
-			self.assertTrue(result)
+		self.loadedTempTestDir(['', 'testing_set1.zip', '-pNewFolder'], 'Integration - Homework 0, -path Conflict N', answer, 'testing_set1.zip', junkpath, testfile, 'n')
 
 	def test_pathExistsPathMove(self):
 		answer = self.pathTestSetup('NewFolder')
-		with self.tempTestDir(['', 'testing_set1.zip', '-pNewFolder', '-m'], 'Integration - Homework 0, -path -move', answer, 'testing_set1.zip') as result:
-			self.assertTrue(result)
+		self.tempTestDir(['', 'testing_set1.zip', '-pNewFolder', '-m'], 'Integration - Homework 0, -path -move', answer, 'testing_set1.zip')
 
 	#TODO: Change testsetNames, test for partial extraction
-	# def test_pathExistsCSV(self):
-	# 	names = [('Anderson, Donald', '20f5d6b21d3d2b3685f2144bc2fc771d'), ('Baker, Kenneth', 'd30f7f7f153271e28c4b632db9fa0b01'),
-	# 			 ('Boss, Big', '41b1318bf1cce2d9a40761b02bab065e'), ('Campbell, Roy', '39b73fb441b1c611f3a50be2b8693f03'),
-	# 			 ('Emmerich, Hal', 'c664acb099c59b2a4940773012d9ca40'), ('Fox, Grey', 'f8049726520d8dc911a7014af736e302'),
-	# 			 ('Hunter, Naomi', 'd860291b770a7dadd23af116c5334caa'), ('Ling, Mei', '29eb03d07be7696caba2f608ac7b8a71'),
-	# 			 ('Mantis, Psycho', '04a6c6c02d714a17cdd6aab5107008e4'), ('Miller, Kazuhira', 'f5cd92c317cec73b96ede092a62adcfe'), 
-	# 			 ('Ocelot, Revolver', 'ef95ea7fbb72b57b38bd5aa7efcf8ca3'), ('Octopus, Decoy', '53a36da95a92702adfa25cb1e221a0d2'),
-	# 			 ('Raven, Vulcan', '8d6da48c03e4e95fad55843d1ed84211'), ('Romanenko, Nastasha', '6569a8e2f02a2611a34106bd2d77f941'), 
-	# 			 ('Sasaki, Johnny', '757c592a306b9dcfeaa6e34ccb752b4a'), ('Silverburgh, Meryl', '205105fa7784a73c91e1412cfc886f65'),
-	# 			 ('Snake, Liquid', 'e60a34764ec988f9d4597fe7825cdd63'), ('Snake, Solid', '437e86082822caa972544f09da5f1050'),
-	# 			 ('Snake, Solidus', 'de2caa5dd90df87e03cfe62780a58c94'), ('Wolf, Sniper', '4f4002d30d729c89bb7fca07bf693c2c')]
-	# 	answer = self.pathTestSetup('Homework 0', names)
-	# 	with self.tempTestDir(['', 'testing_set1.zip', '-ctestingcsv1.csv'], 'Integration - Homework 0, -csv', answer, 'testing_set1.zip') as result:
-	# 		self.assertTrue(result)
+	# ['SNAKE, SOLID', 'SNAKE, LIQUID', 'BOSS, BIG', 'OCELOT, REVOLVER', 
+				  # 'SILVERBURGH, MERYL', 'HUNTER, NAOMI', 'CAMPBELL, ROY']
+	def test_pathExistsCSV(self):
+		names = [('Boss, Big', '41b1318bf1cce2d9a40761b02bab065e'), ('Campbell, Roy', '39b73fb441b1c611f3a50be2b8693f03'),
+				 ('Hunter, Naomi', 'd860291b770a7dadd23af116c5334caa'), ('Ocelot, Revolver', 'ef95ea7fbb72b57b38bd5aa7efcf8ca3'), 
+				 ('Silverburgh, Meryl', '205105fa7784a73c91e1412cfc886f65'), ('Snake, Liquid', 'e60a34764ec988f9d4597fe7825cdd63'), 
+				 ('Snake, Solid', '437e86082822caa972544f09da5f1050')]
+		answer = self.pathTestSetup('Homework 0', names)
+		csv = os.path.abspath('testingcsv1.csv')
+		self.tempTestDir(['', 'testing_set1.zip', '-c' + csv], 'Integration - Homework 0, -csv', answer, 'testing_set1.zip')
 
 	#Parens tests - (Malloc)
 	def test_pathExistsNoFlagsParens(self):
 		answer = self.pathTestSetup('Homework 0 (Malloc)')
-		with self.tempTestDir(['', 'testing_set2.zip'], 'Integration - Homework 0, No flags', answer, 'testing_set2.zip') as result:
-			self.assertTrue(result)
+		self.tempTestDir(['', 'testing_set2.zip'], 'Integration - Homework 0, No flags', answer, 'testing_set2.zip')
 
 	def test_pathExistsMoveParens(self):
 		answer = self.pathTestSetup()
-		with self.tempTestDir(['', 'testing_set2.zip', '-m'], 'Integration - Homework 0, -move', answer, 'testing_set2.zip') as result:
-			self.assertTrue(result)
+		self.tempTestDir(['', 'testing_set2.zip', '-m'], 'Integration - Homework 0, -move', answer, 'testing_set2.zip')
 
 	def test_pathExistsPathParens(self):
 		answer = self.pathTestSetup(os.path.join('NewFolder','Homework 0 (Malloc)'))
-		with self.tempTestDir(['', 'testing_set2.zip', '-pNewFolder'], 'Integration - Homework 0, -path', answer, 'testing_set2.zip') as result:
-			self.assertTrue(result)
+		self.tempTestDir(['', 'testing_set2.zip', '-pNewFolder'], 'Integration - Homework 0, -path', answer, 'testing_set2.zip')
 
 	def test_pathExistsPathMoveParens(self):
 		answer = self.pathTestSetup('NewFolder')
-		with self.tempTestDir(['', 'testing_set2.zip', '-pNewFolder', '-m'], 'Integration - Homework 0, -path -move', answer, 'testing_set2.zip') as result:
-			self.assertTrue(result)
+		self.tempTestDir(['', 'testing_set2.zip', '-pNewFolder', '-m'], 'Integration - Homework 0, -path -move', answer, 'testing_set2.zip')
 
 	#Other tests
 	#TODO: Figure out how to do this test
@@ -135,8 +119,7 @@ class TestSubfixIntegration(unittest.TestCase):
 	@contextmanager
 	def tempTestDir(self, args, test, answer, testset):
 		with self.tempDirectory() as path:
-			with self.integrationContentsTest(args, path, test, answer, testset) as result:
-				yield result
+			self.assertTrue(self.integrationContentsTest(args, path, test, answer, testset))
 			
 	@contextmanager
 	def tempDirectory(self, junkpath=None, files=None):
@@ -153,8 +136,7 @@ class TestSubfixIntegration(unittest.TestCase):
 	@contextmanager
 	def loadedTempTestDir(self, args, test, answer, testset, junkpath, files, choice):
 		with self.tempDirectory(junkpath, files) as path:
-			with self.integrationOverwriteTest(args, path, test, answer, testset, choice) as result:
-				yield result
+			self.assertTrue(self.integrationOverwriteTest(args, path, test, answer, testset, choice))
 
 
 	def _fillDirectory(self, path, files):
@@ -172,17 +154,14 @@ class TestSubfixIntegration(unittest.TestCase):
 			yield
 			sys.stdout = oldstdout
 
-	@contextmanager
 	def integrationContentsTest(self, args, path, test, answer, testset):
 		shutil.copy(os.path.abspath(testset), path)
 		base = os.getcwd()
 		os.chdir(path)
 		with self.suppressOutput():
 			SubmissionFix.main(args)
-		try:
-			yield self.existingPathsTest(base, test, answer)
-		finally:
-			os.chdir(base)
+		os.chdir(base)
+		return self.existingPathsTest(base, test, answer)
 
 	@contextmanager
 	def integrationOverwriteTest(self, args, path, test, answer, testset, choice):
@@ -193,12 +172,8 @@ class TestSubfixIntegration(unittest.TestCase):
 		with self.suppressOutput():
 			p = Popen(['python', submissionScript] + args, stdout=PIPE, stderr=PIPE)
 			out, err = p.communicate(input=choice)
-		try:
-			yield self.existingPathsTest(base, test, answer)
-		finally:
-			os.chdir(base)
-
-
+		os.chdir(base)
+		return self.existingPathsTest(base, test, answer)
 
 	def existingPathsTest(self, base, test, paths):
 		self.logTest(base, test, ['[{exists}]  {path}\n'.format(exists=str(os.path.exists(p)), path=p) for p in paths])
