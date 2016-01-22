@@ -39,24 +39,21 @@ class TestSubfixIntegration(unittest.TestCase):
 		self.tempTestDir(['', 'testing_set1.zip', '-pNewFolder'], 'Integration - Homework 0, -path', answer, 'testing_set1.zip')
 
 	def test_pathExistsPathConflictY(self):
-		junkpath = os.path.join(os.getcwd(), 'NewFolder')
-		testfile = os.path.abspath('testingtxt1.txt')
+		junkpath = os.path.join(os.getcwd(), 'test_folder', 'NewFolder')
+		testfile = [os.path.abspath('testingtxt1.txt')]
 		answer = self.pathTestSetup(os.path.join('NewFolder','Homework 0'))
-		self.loadedTempTestDir(['', 'testing_set1.zip', '-pNewFolder'], 'Integration - Homework 0, -path Conflict Y', answer, 'testing_set1.zip', junkpath, testfile, 'y')
+		self.loadedTempTestDir(['testing_set1.zip', '-pNewFolder'], 'Integration - Homework 0, -path Conflict Y', answer, 'testing_set1.zip', junkpath, testfile, 'y\n')
 
 	def test_pathExistsPathConflictN(self):
-		junkpath = os.path.join(os.getcwd(), 'NewFolder')
-		testfile = os.path.abspath('testingtxt1.txt')
+		junkpath = os.path.join(os.getcwd(), 'test_folder', 'NewFolder')
+		testfile = [os.path.abspath('testingtxt1.txt')]
 		answer = [os.path.abspath('testingtxt1.txt')]
-		self.loadedTempTestDir(['', 'testing_set1.zip', '-pNewFolder'], 'Integration - Homework 0, -path Conflict N', answer, 'testing_set1.zip', junkpath, testfile, 'n')
+		self.loadedTempTestDir(['testing_set1.zip', '-pNewFolder'], 'Integration - Homework 0, -path Conflict N', answer, 'testing_set1.zip', junkpath, testfile, 'n\n')
 
 	def test_pathExistsPathMove(self):
 		answer = self.pathTestSetup('NewFolder')
 		self.tempTestDir(['', 'testing_set1.zip', '-pNewFolder', '-m'], 'Integration - Homework 0, -path -move', answer, 'testing_set1.zip')
 
-	#TODO: Change testsetNames, test for partial extraction
-	# ['SNAKE, SOLID', 'SNAKE, LIQUID', 'BOSS, BIG', 'OCELOT, REVOLVER', 
-				  # 'SILVERBURGH, MERYL', 'HUNTER, NAOMI', 'CAMPBELL, ROY']
 	def test_pathExistsCSV(self):
 		names = [('Boss, Big', '41b1318bf1cce2d9a40761b02bab065e'), ('Campbell, Roy', '39b73fb441b1c611f3a50be2b8693f03'),
 				 ('Hunter, Naomi', 'd860291b770a7dadd23af116c5334caa'), ('Ocelot, Revolver', 'ef95ea7fbb72b57b38bd5aa7efcf8ca3'), 
@@ -86,9 +83,8 @@ class TestSubfixIntegration(unittest.TestCase):
 	#Other tests
 	#TODO: Figure out how to do this test
 	# def test_lateStudentsListed(self):
-	# 	answer = self.pathTestSetup('Homework 0')
-	# 	with self.tempTestDir(['', 'testing_set1.zip', '-ctestingcsv1.csv'], 'Integration - Homework 0, -csv', answer, 'testing_set1.zip') as result:
-	# 		self.assertTrue(result)
+	# 	students = []
+	# 	self.lateTempTestDir(['', 'testing_set1.zip', '-t'], 'Integration - Homework 0, -csv', 'testing_set1.zip', students)
 
 
 	def pathTestSetup(self, root=None, testsetNames=None):
@@ -120,6 +116,16 @@ class TestSubfixIntegration(unittest.TestCase):
 	def tempTestDir(self, args, test, answer, testset):
 		with self.tempDirectory() as path:
 			self.assertTrue(self.integrationContentsTest(args, path, test, answer, testset))
+
+	@contextmanager
+	def loadedTempTestDir(self, args, test, answer, testset, junkpath, files, choice):
+		with self.tempDirectory(junkpath, files) as path:
+			self.assertTrue(self.integrationOverwriteTest(args, path, test, answer, testset, choice))
+
+	@contextmanager
+	def lateTempTestDir(self, args, test, testset, lateStudents):
+		with self.tempDirectory() as path:
+			self.assertTrue(self.integrationLateTest(args, path, test, answer, testset, lateStudents))
 			
 	@contextmanager
 	def tempDirectory(self, junkpath=None, files=None):
@@ -133,18 +139,12 @@ class TestSubfixIntegration(unittest.TestCase):
 		finally:
 			shutil.rmtree(path)
 
-	@contextmanager
-	def loadedTempTestDir(self, args, test, answer, testset, junkpath, files, choice):
-		with self.tempDirectory(junkpath, files) as path:
-			self.assertTrue(self.integrationOverwriteTest(args, path, test, answer, testset, choice))
-
-
 	def _fillDirectory(self, path, files):
 		path = os.path.abspath(path)
 		if not os.path.exists(path):
 			os.makedirs(path)
 			for filepath in files:
-				shutil.copyfile(filepath, os.path.abspath(path))
+				shutil.copy(filepath, os.path.abspath(path))
 
 	@contextmanager
 	def suppressOutput(self):
@@ -154,26 +154,39 @@ class TestSubfixIntegration(unittest.TestCase):
 			yield
 			sys.stdout = oldstdout
 
+	@contextmanager
+	def inDirectory(self, path):
+		base = os.getcwd()
+		os.chdir(path)
+		try:
+			yield
+		finally:
+			os.chdir(base)
+
 	def integrationContentsTest(self, args, path, test, answer, testset):
 		shutil.copy(os.path.abspath(testset), path)
-		base = os.getcwd()
-		os.chdir(path)
-		with self.suppressOutput():
-			SubmissionFix.main(args)
-		os.chdir(base)
-		return self.existingPathsTest(base, test, answer)
+		with self.inDirectory(path):
+			with self.suppressOutput():
+				SubmissionFix.main(args)
+		return self.existingPathsTest(os.getcwd(), test, answer)
 
-	@contextmanager
 	def integrationOverwriteTest(self, args, path, test, answer, testset, choice):
 		shutil.copy(os.path.abspath(testset), path)
-		base = os.getcwd()
-		os.chdir(path)
 		submissionScript = os.path.abspath('SubmissionFix.py')
-		with self.suppressOutput():
+		with self.inDirectory(path):
+			p = Popen(['python', submissionScript] + args, stdin=PIPE, stdout=PIPE, stderr=PIPE)
+			p.stdin.write(choice)
+			p.wait()
+		return self.existingPathsTest(os.getcwd(), test, answer)
+
+	def integrationLateTest(self, args, path, test, testset, lateStudents):
+		shutil.copy(os.path.abspath(testset), path)
+		submissionScript = os.path.abspath('SubmissionFix.py')
+		with self.inDirectory(path):
 			p = Popen(['python', submissionScript] + args, stdout=PIPE, stderr=PIPE)
-			out, err = p.communicate(input=choice)
-		os.chdir(base)
-		return self.existingPathsTest(base, test, answer)
+			out, err = p.communicate()
+			p.wait()
+		return all([student in out for student in lateStudents])
 
 	def existingPathsTest(self, base, test, paths):
 		self.logTest(base, test, ['[{exists}]  {path}\n'.format(exists=str(os.path.exists(p)), path=p) for p in paths])
