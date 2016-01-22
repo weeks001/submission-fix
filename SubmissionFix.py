@@ -240,8 +240,6 @@ class TSquare(AssignmentManager):
             student = filename.split(os.sep)[1].split('(')[0]
             if any([s == student.upper() for s in students]):
                 extractFiles.append(filename)
-
-        print extractFiles
         return extractFiles
 
     def rename(self, directory):
