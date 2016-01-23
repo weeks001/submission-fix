@@ -147,7 +147,7 @@ class AssignmentManager(object):
             Path of newly created directory with extracted files
         """
 
-    def readCSV(self, csvfile, dlimiter=None):
+    def readCSV(self, csvfile):
         """Create a list of students to grade from input csv file.
 
         Reads through csv file and appends each student name to a list, creating a list of lists.
@@ -162,13 +162,12 @@ class AssignmentManager(object):
         """
 
         students = []
-        dlimiter = dlimiter or ';'
         with open(csvfile, 'rb') as f :
-            reader = csv.reader(f, delimiter=delimiter)
+            reader = csv.reader(f, delimiter=';')
             for row in reader :
                 students.append(row)
 
-        students = [s[0].upper() for s in students]
+        students = [s[0] for s in students]
 
         return students
 
@@ -402,10 +401,12 @@ class Canvas(AssignmentManager):
     """Manager to handle Canvas submissions."""
 
     @classmethod
-    def execute(cls, zipfile, roll, path, move, csv):
+    def execute(cls, zipfile, roll, path, csv):
         """Run all neccessary fix up functions for Canvas submissions."""
-        rolldict = _createRollDict(roll)
-        manager = cls(rolldict)
+        # rolldict = _createRollDict(roll)
+        # manager = cls(rolldict)
+        manager = cls(roll)
+        directory = path or os.getcwd()
 
         if csv :
             manager.students = manager.readCSV(csv)
@@ -416,28 +417,25 @@ class Canvas(AssignmentManager):
         print "Extracting bulk submissions."
         manager.extractBulk(zipfile, directory=path) 
         print "Moving and renaming submission files."
-        folders = manager.move(directory, move)
+        folders = manager.move(directory)
         print "Decompressing any compressed files."
         manager._inspectFolders(directory, folders)
 
         
     def __init__(self, roll, students=None):
-        self.roll = roll
+        self.roll = self._createRollDict(roll)
         self.students = students
 
     def _createRollDict(self, roll):
         """Create a dictionary of the roll, mapping formated names ('lastfirstmiddle') to names."""
 
         students = {}
-        rolllist = readCSV(roll, ',')
+        rolllist = self.readCSV(roll)
 
-        for name in roll:
-            splitName = name.split(' ', 2)
-            squishedName = splitName[len(splitName)-1] + splitName[0]
-            for i in range(1, len(splitName)-1):
-                squishedName += splitName[i]            
+        for name in rolllist:
+            squishedName = name.replace(',', '').replace(' ', '')    
+            students[squishedName.upper()] = name
 
-            students[squishedName] = name
         return students
 
     def extractBulk(self, zippy, directory=None):
@@ -480,11 +478,12 @@ class Canvas(AssignmentManager):
     def move(self, directory):
         """
         """
+        print self.roll.items()
 
         createdFolders = set()
         for filename in os.listdir(directory):
-            student = self.roll[filename.split('_')]
-            studentFolder = os.path.join(directory, student.replace(' ', '_'))
+            student = self.roll[filename.split('_')[0].upper()]
+            studentFolder = os.path.join(directory, student)
 
             if os.path.exists(studentFolder):
                 if studentFolder not in createdFolders:
@@ -506,6 +505,7 @@ class Canvas(AssignmentManager):
                 print ("Warning: {student} may have named files using the format 'file-1.txt' on purpose."
                         "Please manually check and rename their files."
                         "{file} was renamed.".format(student=student, file=newFilename))
+                continue
             shutil.move(os.path.abspath(filename), newPath)
         return createdFolders
 
@@ -546,8 +546,8 @@ def main(sysargs):
     t2.set_defaults(action='tsquare')
 
     canv = subparsers.add_parser('canvas', help='Submission files downloaded from Canvas')
-    canv.add_argument('roll', help='csv file of class roll from Canvas (students only, comma seperated)')
-    canv.add_argument('-c', '--csv', help='student list csv file (comma seperated)')
+    canv.add_argument('roll', help='csv file of class roll from Canvas (students only, semicolon seperated)')
+    canv.add_argument('-c', '--csv', help='student list csv file (semicolon seperated)')
     canv.add_argument('-p', '--path', help='extraction path for bulk submissions zip')
     canv.set_defaults(action='canvas')
 
@@ -574,7 +574,7 @@ def main(sysargs):
     if args.action == "tsquare":
         TSquare.execute(args.bulksubmission, args.path, args.move, args.csv, args.time)
     elif args.action == "canvas":
-        Canvas.execute(args.bulksubmission, args.roll, args.path, args.move, args.csv)
+        Canvas.execute(args.bulksubmission, args.roll, args.path, args.csv)
 
     print "\nDone"
 
