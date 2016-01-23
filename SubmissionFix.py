@@ -147,7 +147,7 @@ class AssignmentManager(object):
             Path of newly created directory with extracted files
         """
 
-    def readCSV(self, csvfile):
+    def readCSV(self, csvfile, dlimiter=None):
         """Create a list of students to grade from input csv file.
 
         Reads through csv file and appends each student name to a list, creating a list of lists.
@@ -162,8 +162,9 @@ class AssignmentManager(object):
         """
 
         students = []
+        dlimiter = dlimiter or ';'
         with open(csvfile, 'rb') as f :
-            reader = csv.reader(f, delimiter=';')
+            reader = csv.reader(f, delimiter=delimiter)
             for row in reader :
                 students.append(row)
 
@@ -397,14 +398,141 @@ class TSquare(AssignmentManager):
         subtime = eastern.normalize(subtime)
         return subtime
 
+class Canvas(AssignmentManager):
+    """Manager to handle Canvas submissions."""
+
+    @classmethod
+    def execute(cls, zipfile, roll, path, move, csv):
+        """Run all neccessary fix up functions for Canvas submissions."""
+        rolldict = _createRollDict(roll)
+        manager = cls(rolldict)
+
+        if csv :
+            manager.students = manager.readCSV(csv)
+
+        if path :
+            manager.createPath(path)
+
+        print "Extracting bulk submissions."
+        manager.extractBulk(zipfile, directory=path) 
+        print "Moving and renaming submission files."
+        folders = manager.move(directory, move)
+        print "Decompressing any compressed files."
+        manager._inspectFolders(directory, folders)
+
+        
+    def __init__(self, roll, students=None):
+        self.roll = roll
+        self.students = students
+
+    def _createRollDict(self, roll):
+        """Create a dictionary of the roll, mapping formated names ('lastfirstmiddle') to names."""
+
+        students = {}
+        rolllist = readCSV(roll, ',')
+
+        for name in roll:
+            splitName = name.split(' ', 2)
+            squishedName = splitName[len(splitName)-1] + splitName[0]
+            for i in range(1, len(splitName)-1):
+                squishedName += splitName[i]            
+
+            students[squishedName] = name
+        return students
+
+    def extractBulk(self, zippy, directory=None):
+        """Handle extraction of bulk submissions zip file."""
+        directory = directory or os.getcwd()
+        students = self.students or []
+
+        zfile = zipfile.ZipFile(zippy)
+        filelist = zfile.namelist()
+
+        if students:
+            filelist = self._findStudentsToExtract(filelist, students)
+
+        for filename in filelist:
+            zfile.extract(filename, directory)
+
+    def _findStudentsToExtract(self, filelist, students):
+        """Given list of paths and students, return list of which paths to be extracted."""
+
+        extractFiles = []
+        for filename in filelist:
+            student = self.roll[filename.split('_')] #[lastfirstmiddle] = first middle last
+            if any([s == student.upper() for s in students]):
+                extractFiles.append(filename)
+        return extractFiles
+
+    #TODO: change function
+    def _processStudentFolder(self, studentFolder):
+        """Collects and moves stray files, checks for late status, and handles submission files."""
+        strayFiles = list(self._getFilePaths(studentFolder))
+
+        lateStatus = self._checkTimeStamp(os.path.basename(studentFolder), strayFiles)
+
+        self._moveStrayFiles(studentFolder, strayFiles)
+        self._extractSubmissionAttachments(studentFolder)
+
+        return lateStatus
+
+    #TODO: change function
+    def move(self, directory):
+        """
+        """
+
+        createdFolders = set()
+        for filename in os.listdir(directory):
+            student = self.roll[filename.split('_')]
+            studentFolder = os.path.join(directory, student.replace(' ', '_'))
+
+            if os.path.exists(studentFolder):
+                if studentFolder not in createdFolders:
+                    shutil.rmtree(studentFolder)
+                    os.makedirs(studentFolder)
+            else:
+                os.makedirs(studentFolder)
+                
+            createdFolders.add(studentFolder)
+
+
+            _, newFilename = filename.rsplit('_', 1)
+            tempfilename = re.split('-\d+\.', newFilename)
+            if len(tempfilename) > 1:
+                newFilename = '.'.join(newFilename)
+
+            newPath = os.path.join(studentFolder, newFilename)
+            if os.path.exists(newPath):
+                print ("Warning: {student} may have named files using the format 'file-1.txt' on purpose."
+                        "Please manually check and rename their files."
+                        "{file} was renamed.".format(student=student, file=newFilename))
+            shutil.move(os.path.abspath(filename), newPath)
+        return createdFolders
+
+    # def _renameFile(self, filename):
+    #     """Renames a file in format 'lastfirstmiddle_0000_0000_file-1.txt' to 'file.txt'."""
+    #     _, newFilename = filename.rsplit('_', 1)
+    #     #look for -#.  "-\d+\."
+    #     rawtime = re.compile(r"^(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})")
+
+    def _inspectFolders(self, path, folderList):
+        """Looks through each student folder in the directory and decompresses any compressed files."""
+
+        for folder in os.listdir(path):
+            if os.path.isdir(folder) and " ".join(folder.split('_')) in folderList:
+                extract(os.join.path(path, folder))
+
+
+
 def main(sysargs):
     parser = argparse.ArgumentParser(description='Script to extract student submissions from bulk zip.')
     parser.add_argument('bulksubmission', help='bulk zip of student submissions')
+    parser.add_argument('manager', help='assignment manager submissions were downloaded from', choices=['tsquare', 'canvas'])
     parser.add_argument('-c', '--csv', help='student list csv file (semicolon seperated)')
     parser.add_argument('-p', '--path', help='extraction path for bulk submissions zip')
     parser.add_argument('-m', '--move', help='move student folders out of archive root folder', action='store_true')
     parser.add_argument('-t', '--time', help=('Flag late submissions past due date. Requires due date and time. '
-                                              'Checks submissions using the US/Eastern timezone. Requires pytz to use.'), 
+                                              'Checks submissions using the US/Eastern timezone. Requires pytz to use. [TSqaure Only]'), 
                                         nargs='+', action=requiredLength(2), metavar=('mm/dd/yy', 'hh:mm'))
 
     if len(sysargs) == 1 :
@@ -412,8 +540,12 @@ def main(sysargs):
         sys.exit(1)
 
     args = parser.parse_args(sysargs[1:])
+    choice = args.manager
 
-    TSquare.execute(args.bulksubmission, args.path, args.move, args.csv, args.time)
+    if choice is 'tsquare' :
+        TSquare.execute(args.bulksubmission, args.path, args.move, args.csv, args.time)
+    if choice is 'canvas' :
+        Canvas.execute(args.bulksubmission, args.roll, args.path, args.move, args.csv)
 
     print "\nDone"
 
