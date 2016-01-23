@@ -30,14 +30,6 @@ try :
 except ImportError :
     findTime = False
 
-
-#TODO: handle directory collisions by prompting user
-#TODO: copy in grading files when extracting
-#TODO: report no submissions (check if Submitted Files directory is empty)
-
-#TODO: look into 7zip functionality
-#TODO: collapse directories with only one folder inside and no files
-
 def requiredLength(nargs):
     """Checks that input arguments for given flag are of the specified number.
 
@@ -128,6 +120,9 @@ def prepareTimeCheck(time):
     duetime = eastern.localize(duetime)
     return duetime
 
+class BadCSVError(RuntimeError):
+    pass
+
 class AssignmentManager(object):
     """Manager to handle a given assignment submission and collection tool."""
 
@@ -167,7 +162,7 @@ class AssignmentManager(object):
             for row in reader :
                 students.append(row)
 
-        students = [s[0].upper() for s in students]
+        students = [s[0] for s in students]
 
         return students
 
@@ -260,8 +255,11 @@ class TSquare(AssignmentManager):
         extractFiles = []
         for filename in filelist:
             student = filename.split(os.sep)[1].split('(')[0]
-            if any([s == student.upper() for s in students]):
+            if any([s.upper() == student.upper() for s in students]):
                 extractFiles.append(filename)
+
+        if not extractFiles:
+            raise BadCSVError("Error: csv file matches no submissions.")
         return extractFiles
 
     def rename(self, directory):
@@ -311,7 +309,7 @@ class TSquare(AssignmentManager):
             shutil.move(path, dest)      
   
     def _moveStrayFiles(self, source, strayFiles):
-        "Creates a 'Text' directory and moves non-assignment files to it."
+        """Creates a 'Text' directory and moves non-assignment files to it."""
 
         dest = os.path.join(source, "Text")
         if not os.path.exists(dest) :
@@ -397,23 +395,192 @@ class TSquare(AssignmentManager):
         subtime = eastern.normalize(subtime)
         return subtime
 
+class Canvas(AssignmentManager):
+    """Manager to handle Canvas submissions."""
+
+    @classmethod
+    def execute(cls, zipfile, roll, path, csv):
+        """Run all neccessary fix up functions for Canvas submissions."""
+        manager = cls(roll)
+        directory = path or os.getcwd()
+
+
+        if csv :
+            manager.students = manager.readCSV(csv)
+
+        if path :
+            manager.createPath(path)
+
+        print "Extracting bulk submissions."
+        manager.extractBulk(zipfile, directory=path) 
+        print "Moving and renaming submission files."
+        folders = manager.move(directory)
+        print "Decompressing any compressed files."
+        manager._inspectFolders(directory, folders)
+
+        
+    def __init__(self, roll, students=None):
+        self.roll = self._createRollDict(roll)
+        self.students = students
+
+    def _createRollDict(self, roll):
+        """Create a dictionary of the roll, mapping formated names ('lastfirstmiddle') to names."""
+
+        students = {}
+        rolllist = self.readCSV(roll)
+
+        for name in rolllist:
+            squishedName = name.replace(',', '').replace(' ', '')    
+            students[squishedName.upper()] = name
+
+        return students
+
+    def extractBulk(self, zippy, directory=None):
+        """Handle extraction of bulk submissions zip file."""
+        directory = directory or os.getcwd()
+        students = self.students or []
+
+        zfile = zipfile.ZipFile(zippy)
+        filelist = zfile.namelist()
+
+        if students:
+            filelist = self._findStudentsToExtract(filelist, students)
+
+        for filename in filelist:
+            zfile.extract(filename, directory)
+
+    def _findStudentsToExtract(self, filelist, students):
+        """Given list of paths and students, return list of which paths to be extracted."""
+
+        extractFiles = []
+        for filename in filelist:
+            student = self.roll[filename.split('_')[0].upper()] #[lastfirstmiddle] = first middle last
+            if any([s.upper() == student.upper() for s in students]):
+                extractFiles.append(filename)
+
+        if not extractFiles:
+            raise BadCSVError("Error: csv file matches no submissions.")
+        return extractFiles
+
+    def _processStudentFolder(self, studentFolder):
+        """Collects and moves stray files, checks for late status, and handles submission files."""
+        strayFiles = list(self._getFilePaths(studentFolder))
+
+        lateStatus = self._checkTimeStamp(os.path.basename(studentFolder), strayFiles)
+
+        self._moveStrayFiles(studentFolder, strayFiles)
+        self._extractSubmissionAttachments(studentFolder)
+
+        return lateStatus
+
+    def move(self, directory):
+        """Moves files into the correct student folder.
+
+        Moves all files starting with a student's name into a folder of their name. Creates a student folder
+        if there is not already one and overwrites the folder if there was one to begin with. Files are trimmed,
+        removing student name and resubmission numbers. If a filename collision is detected, user is warned and
+        must move that student's files manually.
+
+        Args:
+            directory: directory with student submission folders
+
+        Returns:
+            createdFolders: set of student folder names that were created
+        """
+
+        createdFolders = set()
+        for filename in os.listdir(directory):
+            if filename.split('_')[0].upper() in self.roll.keys():
+                student = self.roll[filename.split('_')[0].upper()]
+                
+                studentFolder = self._createStudentFolder(directory, student, createdFolders)
+                createdFolders.add(studentFolder)
+                newFilename = self._renameFile(filename)
+                newPath = os.path.join(studentFolder, newFilename)
+
+                if os.path.exists(newPath):
+                    print ("Warning: {student} has a filename collision on '{file}'."
+                            " The student may have named files using the format 'file-1.txt' on purpose."
+                            " Please manually check, move, and rename their files.".format(student=student, file=newFilename))
+                    continue
+                shutil.move(os.path.join(directory, filename), newPath)
+
+        return createdFolders
+
+    def _createStudentFolder(self, directory, student, createdFolders):
+        """Creates a folder with student's name, overwriting it if the folder already exists."""
+        studentFolder = os.path.join(directory, student)
+        if os.path.exists(studentFolder):
+            if studentFolder not in createdFolders:
+                shutil.rmtree(studentFolder)
+                os.makedirs(studentFolder)
+        else:
+            os.makedirs(studentFolder)
+        return studentFolder
+
+
+    def _renameFile(self, filename):
+        """Rename file into correct format, discarding added '-#'s Canvas adds to resubmissions."""
+        _, newFilename = filename.rsplit('_', 1)
+        tempfilename = re.split('-\d+\.', newFilename)
+        if len(tempfilename) > 1:
+            newFilename = '.'.join(tempfilename)
+        return newFilename
+
+
+    def _inspectFolders(self, path, folderList):
+        """Looks through each student folder in the directory and decompresses any compressed files."""
+
+        for folder in os.listdir(path):
+            if os.path.isdir(folder) and " ".join(folder.split('_')) in folderList:
+                extract(os.join.path(path, folder))
+
+
 def main(sysargs):
     parser = argparse.ArgumentParser(description='Script to extract student submissions from bulk zip.')
-    parser.add_argument('bulksubmission', help='bulk zip of student submissions')
-    parser.add_argument('-c', '--csv', help='student list csv file (semicolon seperated)')
-    parser.add_argument('-p', '--path', help='extraction path for bulk submissions zip')
-    parser.add_argument('-m', '--move', help='move student folders out of archive root folder', action='store_true')
-    parser.add_argument('-t', '--time', help=('Flag late submissions past due date. Requires due date and time. '
+    parser.add_argument('bulksubmission', help='bulk submissions zip file', metavar='submissions.zip')
+
+    subparsers = parser.add_subparsers(title='Submission Managers')
+
+    t2 = subparsers.add_parser('tsquare', help='Submission files downloaded from T-Square')
+    t2.add_argument('-c', '--csv', help='student list csv file (semicolon seperated)')
+    t2.add_argument('-p', '--path', help='extraction path for bulk submissions zip')
+    t2.add_argument('-m', '--move', help='move student folders out of archive root folder', action='store_true')
+    t2.add_argument('-t', '--time', help=('Flag late submissions past due date. Requires due date and time. '
                                               'Checks submissions using the US/Eastern timezone. Requires pytz to use.'), 
                                         nargs='+', action=requiredLength(2), metavar=('mm/dd/yy', 'hh:mm'))
+    t2.set_defaults(action='tsquare')
+
+    canv = subparsers.add_parser('canvas', help='Submission files downloaded from Canvas')
+    canv.add_argument('roll', help='csv file of class roll from Canvas (students only, semicolon seperated)')
+    canv.add_argument('-c', '--csv', help='student list csv file (semicolon seperated)')
+    canv.add_argument('-p', '--path', help='extraction path for bulk submissions zip')
+    canv.set_defaults(action='canvas')
 
     if len(sysargs) == 1 :
         parser.print_help()
+       
+        ## Source: http://stackoverflow.com/questions/20094215/argparse-subparser-monolithic-help-output
+        # retrieve subparsers from parser
+        subparsers_actions = [
+            action for action in parser._actions
+            if isinstance(action, argparse._SubParsersAction)]
+        # there will probably only be one subparser_action,
+        # but better save than sorry
+        for subparsers_action in subparsers_actions:
+            # get all subparsers and print help
+            for choice, subparser in subparsers_action.choices.items():
+                print("\nSubmission Manager '{}'".format(choice))
+                print(subparser.format_help())
+        ##
         sys.exit(1)
 
     args = parser.parse_args(sysargs[1:])
 
-    TSquare.execute(args.bulksubmission, args.path, args.move, args.csv, args.time)
+    if args.action == "tsquare":
+        TSquare.execute(args.bulksubmission, args.path, args.move, args.csv, args.time)
+    elif args.action == "canvas":
+        Canvas.execute(args.bulksubmission, args.roll, args.path, args.csv)
 
     print "\nDone"
 
