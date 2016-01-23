@@ -236,6 +236,13 @@ class TestCanvasIntegration(unittest.TestCase):
 		answer = self.pathTestSetup()
 		self.tempTestDir(['', 'testing_setc3.zip', 'canvas', 'testroll.csv'], 'Canvas - Homework 0, No flags', answer, 'testing_setc3.zip')
 
+	def test_pathExistsFolderCollision(self):
+		answer = self.pathTestSetup()
+		junkpath = os.path.join(os.getcwd(), 'test_folder', 'Sasaki, Jonny')
+		testfile = [os.path.abspath('testingtxt1.txt')]
+		self.loadedTempTestDir(['', 'testing_setc1.zip', 'canvas', 'testroll.csv'], 'Canvas - Homework 0, No flags', answer, 'testing_setc1.zip', junkpath, testfile)
+
+
 
 	#Testing functions and setup
 	def pathTestSetup(self, root=None, testsetNames=None):
@@ -257,6 +264,11 @@ class TestCanvasIntegration(unittest.TestCase):
 	@contextmanager
 	def tempTestDir(self, args, test, answer, testset):
 		with self.tempDirectory() as path:
+			self.assertTrue(self.integrationContentsTest(args, path, test, answer, testset))
+
+	@contextmanager
+	def loadedTempTestDir(self, args, test, answer, testset, junkpath, files):
+		with self.tempDirectory(junkpath, files) as path:
 			self.assertTrue(self.integrationContentsTest(args, path, test, answer, testset))
 			
 	@contextmanager
