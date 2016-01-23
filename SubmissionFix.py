@@ -30,14 +30,6 @@ try :
 except ImportError :
     findTime = False
 
-
-#TODO: handle directory collisions by prompting user
-#TODO: copy in grading files when extracting
-#TODO: report no submissions (check if Submitted Files directory is empty)
-
-#TODO: look into 7zip functionality
-#TODO: collapse directories with only one folder inside and no files
-
 def requiredLength(nargs):
     """Checks that input arguments for given flag are of the specified number.
 
@@ -260,8 +252,11 @@ class TSquare(AssignmentManager):
         extractFiles = []
         for filename in filelist:
             student = filename.split(os.sep)[1].split('(')[0]
-            if any([s == student.upper() for s in students]):
+            if any([s.upper() == student.upper() for s in students]):
                 extractFiles.append(filename)
+
+        if not extractFiles:
+            sys.exit("Error: csv file matches no submissions.")
         return extractFiles
 
     def rename(self, directory):
@@ -311,7 +306,7 @@ class TSquare(AssignmentManager):
             shutil.move(path, dest)      
   
     def _moveStrayFiles(self, source, strayFiles):
-        "Creates a 'Text' directory and moves non-assignment files to it."
+        """Creates a 'Text' directory and moves non-assignment files to it."""
 
         dest = os.path.join(source, "Text")
         if not os.path.exists(dest) :
@@ -403,10 +398,9 @@ class Canvas(AssignmentManager):
     @classmethod
     def execute(cls, zipfile, roll, path, csv):
         """Run all neccessary fix up functions for Canvas submissions."""
-        # rolldict = _createRollDict(roll)
-        # manager = cls(rolldict)
         manager = cls(roll)
         directory = path or os.getcwd()
+
 
         if csv :
             manager.students = manager.readCSV(csv)
@@ -460,9 +454,11 @@ class Canvas(AssignmentManager):
             student = self.roll[filename.split('_')[0].upper()] #[lastfirstmiddle] = first middle last
             if any([s.upper() == student.upper() for s in students]):
                 extractFiles.append(filename)
+
+        if not extractFiles:
+            sys.exit("Error: csv file matches no submissions.")
         return extractFiles
 
-    #TODO: change function
     def _processStudentFolder(self, studentFolder):
         """Collects and moves stray files, checks for late status, and handles submission files."""
         strayFiles = list(self._getFilePaths(studentFolder))
@@ -474,47 +470,60 @@ class Canvas(AssignmentManager):
 
         return lateStatus
 
-    #TODO: change function
     def move(self, directory):
-        """
+        """Moves files into the correct student folder.
+
+        Moves all files starting with a student's name into a folder of their name. Creates a student folder
+        if there is not already one and overwrites the folder if there was one to begin with. Files are trimmed,
+        removing student name and resubmission numbers. If a filename collision is detected, user is warned and
+        must move that student's files manually.
+
+        Args:
+            directory: directory with student submission folders
+
+        Returns:
+            createdFolders: set of student folder names that were created
         """
 
         createdFolders = set()
         for filename in os.listdir(directory):
             if filename.split('_')[0].upper() in self.roll.keys():
                 student = self.roll[filename.split('_')[0].upper()]
-                studentFolder = os.path.join(directory, student)
-
-                if os.path.exists(studentFolder):
-                    if studentFolder not in createdFolders:
-                        shutil.rmtree(studentFolder)
-                        os.makedirs(studentFolder)
-                else:
-                    os.makedirs(studentFolder)
-                    
+                
+                studentFolder = self._createStudentFolder(directory, student, createdFolders)
                 createdFolders.add(studentFolder)
-
-
-                _, newFilename = filename.rsplit('_', 1)
-                tempfilename = re.split('-\d+\.', newFilename)
-                if len(tempfilename) > 1:
-                    newFilename = '.'.join(tempfilename)
-                    # print newFilename
-
+                newFilename = self._renameFile(filename)
                 newPath = os.path.join(studentFolder, newFilename)
+
                 if os.path.exists(newPath):
                     print ("Warning: {student} has a filename collision on '{file}'."
                             " The student may have named files using the format 'file-1.txt' on purpose."
                             " Please manually check, move, and rename their files.".format(student=student, file=newFilename))
                     continue
                 shutil.move(os.path.join(directory, filename), newPath)
+
         return createdFolders
 
-    # def _renameFile(self, filename):
-    #     """Renames a file in format 'lastfirstmiddle_0000_0000_file-1.txt' to 'file.txt'."""
-    #     _, newFilename = filename.rsplit('_', 1)
-    #     #look for -#.  "-\d+\."
-    #     rawtime = re.compile(r"^(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})")
+    def _createStudentFolder(self, directory, student, createdFolders):
+        """Creates a folder with student's name, overwriting it if the folder already exists."""
+        studentFolder = os.path.join(directory, student)
+        if os.path.exists(studentFolder):
+            if studentFolder not in createdFolders:
+                shutil.rmtree(studentFolder)
+                os.makedirs(studentFolder)
+        else:
+            os.makedirs(studentFolder)
+        return studentFolder
+
+
+    def _renameFile(self, filename):
+        """Rename file into correct format, discarding added '-#'s Canvas adds to resubmissions."""
+        _, newFilename = filename.rsplit('_', 1)
+        tempfilename = re.split('-\d+\.', newFilename)
+        if len(tempfilename) > 1:
+            newFilename = '.'.join(tempfilename)
+        return newFilename
+
 
     def _inspectFolders(self, path, folderList):
         """Looks through each student folder in the directory and decompresses any compressed files."""
@@ -527,14 +536,7 @@ class Canvas(AssignmentManager):
 def main(sysargs):
     parser = argparse.ArgumentParser(description='Script to extract student submissions from bulk zip.')
     parser.add_argument('bulksubmission', help='bulk submissions zip file', metavar='submissions.zip')
-    # parser.add_argument('manager', help='assignment manager submissions were downloaded from', choices=['tsquare', 'canvas'])
-    # parser.add_argument('-c', '--csv', help='student list csv file (semicolon seperated)')
-    # parser.add_argument('-p', '--path', help='extraction path for bulk submissions zip')
-    # parser.add_argument('-m', '--move', help='move student folders out of archive root folder', action='store_true')
-    # parser.add_argument('-t', '--time', help=('Flag late submissions past due date. Requires due date and time. '
-    #                                           'Checks submissions using the US/Eastern timezone. Requires pytz to use. [TSqaure Only]'), 
-    #                                     nargs='+', action=requiredLength(2), metavar=('mm/dd/yy', 'hh:mm'))
-    
+
     subparsers = parser.add_subparsers(title='Submission Managers')
 
     t2 = subparsers.add_parser('tsquare', help='Submission files downloaded from T-Square')

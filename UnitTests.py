@@ -24,31 +24,31 @@ class TestSubfixMethods(unittest.TestCase):
 
 	#readCSV
 	def test_readCSVSubset(self):
-		answer = ['SNAKE, SOLID', 'SNAKE, LIQUID', 'BOSS, BIG', 'OCELOT, REVOLVER', 
-				  'SILVERBURGH, MERYL', 'HUNTER, NAOMI', 'CAMPBELL, ROY']
+		answer = ['Snake, Solid', 'Snake, Liquid', 'Boss, Big', 'Ocelot, Revolver', 
+				  'Silverburgh, Meryl', 'Hunter, Naomi', 'Campbell, Roy']
 		self.assertEqual(SubmissionFix.TSquare().readCSV('testingcsv1.csv'), answer)
 
 	def test_readCSVAll(self):
-		answer = ['SNAKE, SOLID', 'SNAKE, LIQUID', 'SNAKE, SOLIDUS', 'BOSS, BIG', 
-				  'FOX, GREY', 'OCELOT, REVOLVER', 'EMMERICH, HAL', 'HUNTER, NAOMI',
-				  'SILVERBURGH, MERYL', 'WOLF, SNIPER', 'RAVEN, VULCAN', 'MANTIS, PSYCHO',
-				  'OCTOPUS, DECOY', 'CAMPBELL, ROY', 'ANDERSON, DONALD', 'BAKER, KENNETH',
-				  'MILLER, KAZUHIRA', 'LING, MEI', 'ROMANENKO, NASTASHA', 'SASAKI, JOHNNY']
+		answer = ['Snake, Solid', 'Snake, Liquid', 'Snake, Solidus', 'Boss, Big', 
+				  'Fox, Grey', 'Ocelot, Revolver', 'Emmerich, Hal', 'Hunter, Naomi',
+				  'Silverburgh, Meryl', 'Wolf, Sniper', 'Raven, Vulcan', 'Mantis, Psycho',
+				  'Octopus, Decoy', 'Campbell, Roy', 'Anderson, Donald', 'Baker, Kenneth',
+				  'Miller, Kazuhira', 'Ling, Mei', 'Romanenko, Nastasha', 'Sasaki, Johnny']
 		self.assertEqual(SubmissionFix.TSquare().readCSV('testingcsv2.csv'), answer)
 
 	def test_readCSVOverlap(self):
-		answer = ['SNAKE, SOLIDUS', 'SNAKE, SOLID']
+		answer = ['Snake, Solidus', 'Snake, Solid']
 		self.assertEqual(SubmissionFix.TSquare().readCSV('testingcsv3.csv'), answer)
 
 	def test_readCSVOne(self):
-		answer = ['FOX, GREY']
+		answer = ['Fox, Grey']
 		self.assertEqual(SubmissionFix.TSquare().readCSV('testingcsv4.csv'), answer)
 
 	#stripTime
 	@unittest.skipIf(findTime is False, "pytz needed for this test")
 	def test_stripTimeNormal(self):
 		eastern = timezone('US/Eastern')
-		answer = datetime.datetime(2005,02,28,17,15)  #should be 5 hours behind result?
+		answer = datetime.datetime(2005,02,28,17,15) 
 		self.assertEqual(SubmissionFix.TSquare().stripTime('20050228221512345'), eastern.localize(answer))
 
 	@unittest.skipIf(findTime is False, "pytz needed for this test")
