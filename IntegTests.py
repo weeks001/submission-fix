@@ -207,11 +207,34 @@ class TestTSquareIntegration(unittest.TestCase):
 class TestCanvasIntegration(unittest.TestCase):
 	"""Integration tests for the submission fix script."""
 
+	@classmethod
+	def setUpClass(cls):
+		with open('tests_log.txt', 'w+') as f:
+			f.write('SubmissonFix Test Log - Canvas\n\n')
 
 	#Normal tests
 	def test_pathExistsNoFlags(self):
 		answer = self.pathTestSetup()
 		self.tempTestDir(['', 'testing_setc1.zip', 'canvas', 'testroll.csv'], 'Canvas - Homework 0, No flags', answer, 'testing_setc1.zip')
+
+	def test_pathExistsCSV(self):
+		names = ['Boss, Big', 'Campbell, Roy', 'Hunter, Naomi', 'Ocelot, Revolver', 'Silverburgh, Meryl', 
+				 'Snake, Liquid', 'Snake, Solid']
+		answer = self.pathTestSetup(testsetNames=names)
+		csv = os.path.abspath('testingcsv1.csv')
+		self.tempTestDir(['', 'testing_setc1.zip','canvas', 'testroll.csv', '-c' + csv], 'Canvas - Homework 0, -csv', answer, 'testing_setc1.zip')
+
+	def test_pathExistsPath(self):
+		answer = self.pathTestSetup('NewFolder')
+		self.tempTestDir(['', 'testing_setc1.zip','canvas', 'testroll.csv', '-pNewFolder'], 'Canvas - Homework 0, -path', answer, 'testing_setc1.zip')
+
+	def test_pathExistsResubmit(self):
+		answer = self.pathTestSetup()
+		self.tempTestDir(['', 'testing_setc2.zip', 'canvas', 'testroll.csv'], 'Canvas - Homework 0, No Flags, Resubmitted files', answer, 'testing_setc2.zip')
+
+	def test_pathExistsBadNames(self):
+		answer = self.pathTestSetup()
+		self.tempTestDir(['', 'testing_setc3.zip', 'canvas', 'testroll.csv'], 'Canvas - Homework 0, No flags', answer, 'testing_setc3.zip')
 
 
 	#Testing functions and setup
@@ -246,7 +269,7 @@ class TestCanvasIntegration(unittest.TestCase):
 		try:
 			yield path
 		finally:
-			shutil.rmtree(path)
+			shutil.rmtree(path, ignore_errors = True)
 
 	def _fillDirectory(self, path, files):
 		path = os.path.abspath(path)
@@ -276,8 +299,9 @@ class TestCanvasIntegration(unittest.TestCase):
 		shutil.copy(os.path.abspath(testset), path)
 		shutil.copy(os.path.abspath('testroll.csv'), path)
 		with self.inDirectory(path):
-			with self.suppressOutput():
-				SubmissionFix.main(args)
+			# with self.suppressOutput():
+				# SubmissionFix.main(args)
+			SubmissionFix.main(args)
 		return self.existingPathsTest(os.getcwd(), test, answer)
 
 	def existingPathsTest(self, base, test, paths):
@@ -287,7 +311,7 @@ class TestCanvasIntegration(unittest.TestCase):
 	def logTest(self, base, name, results):
 		temp = os.getcwd()
 		os.chdir(base)
-		with open('tests_log.txt', 'a') as f:
+		with open('tests_logC.txt', 'a') as f:
 			header = "==================================\n{testname}\n==================================\n"
 			f.write(header.format(testname=name))
 			for r in results:

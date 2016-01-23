@@ -457,8 +457,8 @@ class Canvas(AssignmentManager):
 
         extractFiles = []
         for filename in filelist:
-            student = self.roll[filename.split('_')] #[lastfirstmiddle] = first middle last
-            if any([s == student.upper() for s in students]):
+            student = self.roll[filename.split('_')[0].upper()] #[lastfirstmiddle] = first middle last
+            if any([s.upper() == student.upper() for s in students]):
                 extractFiles.append(filename)
         return extractFiles
 
@@ -478,35 +478,36 @@ class Canvas(AssignmentManager):
     def move(self, directory):
         """
         """
-        print self.roll.items()
 
         createdFolders = set()
         for filename in os.listdir(directory):
-            student = self.roll[filename.split('_')[0].upper()]
-            studentFolder = os.path.join(directory, student)
+            if filename.split('_')[0].upper() in self.roll.keys():
+                student = self.roll[filename.split('_')[0].upper()]
+                studentFolder = os.path.join(directory, student)
 
-            if os.path.exists(studentFolder):
-                if studentFolder not in createdFolders:
-                    shutil.rmtree(studentFolder)
+                if os.path.exists(studentFolder):
+                    if studentFolder not in createdFolders:
+                        shutil.rmtree(studentFolder)
+                        os.makedirs(studentFolder)
+                else:
                     os.makedirs(studentFolder)
-            else:
-                os.makedirs(studentFolder)
-                
-            createdFolders.add(studentFolder)
+                    
+                createdFolders.add(studentFolder)
 
 
-            _, newFilename = filename.rsplit('_', 1)
-            tempfilename = re.split('-\d+\.', newFilename)
-            if len(tempfilename) > 1:
-                newFilename = '.'.join(newFilename)
+                _, newFilename = filename.rsplit('_', 1)
+                tempfilename = re.split('-\d+\.', newFilename)
+                if len(tempfilename) > 1:
+                    newFilename = '.'.join(tempfilename)
+                    # print newFilename
 
-            newPath = os.path.join(studentFolder, newFilename)
-            if os.path.exists(newPath):
-                print ("Warning: {student} may have named files using the format 'file-1.txt' on purpose."
-                        "Please manually check and rename their files."
-                        "{file} was renamed.".format(student=student, file=newFilename))
-                continue
-            shutil.move(os.path.abspath(filename), newPath)
+                newPath = os.path.join(studentFolder, newFilename)
+                if os.path.exists(newPath):
+                    print ("Warning: {student} has a filename collision on '{file}'."
+                            " The student may have named files using the format 'file-1.txt' on purpose."
+                            " Please manually check, move, and rename their files.".format(student=student, file=newFilename))
+                    continue
+                shutil.move(os.path.join(directory, filename), newPath)
         return createdFolders
 
     # def _renameFile(self, filename):
