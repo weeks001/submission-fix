@@ -5,7 +5,6 @@ from __future__ import with_statement
 A collection of unit tests for the submission script.
 """
 __author__ = "Marie Weeks"
-__version__ = "1.0"
 
 import unittest
 import datetime

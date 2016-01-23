@@ -10,7 +10,6 @@ into an empty directory. This way it won't accidently overwrite already extracte
 """
 
 __author__ = "Marie Weeks"
-__version__ = "1.9"
 
 import os
 import sys
@@ -532,8 +531,9 @@ class Canvas(AssignmentManager):
         """Looks through each student folder in the directory and decompresses any compressed files."""
 
         for folder in os.listdir(path):
-            if os.path.isdir(folder) and " ".join(folder.split('_')) in folderList:
-                extract(os.join.path(path, folder))
+            if os.path.isdir(folder) and os.path.abspath(folder) in folderList:
+                extract(os.path.join(path, folder))
+                print os.listdir(os.path.join(path, folder))
 
 
 def main(sysargs):
