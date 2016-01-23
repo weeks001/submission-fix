@@ -523,10 +523,9 @@ class Canvas(AssignmentManager):
                 extract(os.join.path(path, folder))
 
 
-
 def main(sysargs):
     parser = argparse.ArgumentParser(description='Script to extract student submissions from bulk zip.')
-    parser.add_argument('bulksubmission', help='bulk zip of student submissions')
+    parser.add_argument('bulksubmission', help='bulk submissions zip file', metavar='submissions.zip')
     # parser.add_argument('manager', help='assignment manager submissions were downloaded from', choices=['tsquare', 'canvas'])
     # parser.add_argument('-c', '--csv', help='student list csv file (semicolon seperated)')
     # parser.add_argument('-p', '--path', help='extraction path for bulk submissions zip')
@@ -534,8 +533,8 @@ def main(sysargs):
     # parser.add_argument('-t', '--time', help=('Flag late submissions past due date. Requires due date and time. '
     #                                           'Checks submissions using the US/Eastern timezone. Requires pytz to use. [TSqaure Only]'), 
     #                                     nargs='+', action=requiredLength(2), metavar=('mm/dd/yy', 'hh:mm'))
-
-    subparsers = p.add_subparsers(title='Submission Managers')
+    
+    subparsers = parser.add_subparsers(title='Submission Managers')
 
     t2 = subparsers.add_parser('tsquare', help='Submission files downloaded from T-Square')
     t2.add_argument('-c', '--csv', help='student list csv file (semicolon seperated)')
@@ -544,24 +543,38 @@ def main(sysargs):
     t2.add_argument('-t', '--time', help=('Flag late submissions past due date. Requires due date and time. '
                                               'Checks submissions using the US/Eastern timezone. Requires pytz to use.'), 
                                         nargs='+', action=requiredLength(2), metavar=('mm/dd/yy', 'hh:mm'))
+    t2.set_defaults(action='tsquare')
 
     canv = subparsers.add_parser('canvas', help='Submission files downloaded from Canvas')
     canv.add_argument('roll', help='csv file of class roll from Canvas (students only, comma seperated)')
     canv.add_argument('-c', '--csv', help='student list csv file (comma seperated)')
     canv.add_argument('-p', '--path', help='extraction path for bulk submissions zip')
+    canv.set_defaults(action='canvas')
 
     if len(sysargs) == 1 :
         parser.print_help()
+       
+        ## Source: http://stackoverflow.com/questions/20094215/argparse-subparser-monolithic-help-output
+        # retrieve subparsers from parser
+        subparsers_actions = [
+            action for action in parser._actions
+            if isinstance(action, argparse._SubParsersAction)]
+        # there will probably only be one subparser_action,
+        # but better save than sorry
+        for subparsers_action in subparsers_actions:
+            # get all subparsers and print help
+            for choice, subparser in subparsers_action.choices.items():
+                print("\nSubmission Manager '{}'".format(choice))
+                print(subparser.format_help())
+        ##
         sys.exit(1)
 
     args = parser.parse_args(sysargs[1:])
 
-    print args
-
-    # if choice is 'tsquare' :
-    #     TSquare.execute(args.bulksubmission, args.path, args.move, args.csv, args.time)
-    # if choice is 'canvas' :
-    #     Canvas.execute(args.bulksubmission, args.roll, args.path, args.move, args.csv)
+    if args.action == "tsquare":
+        TSquare.execute(args.bulksubmission, args.path, args.move, args.csv, args.time)
+    elif args.action == "canvas":
+        Canvas.execute(args.bulksubmission, args.roll, args.path, args.move, args.csv)
 
     print "\nDone"
 

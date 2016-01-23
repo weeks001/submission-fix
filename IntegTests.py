@@ -28,7 +28,7 @@ class TestSubfixIntegration(unittest.TestCase):
 	#Normal tests
 	def test_pathExistsNoFlags(self):
 		answer = self.pathTestSetup('Homework 0')
-		self.tempTestDir(['', 'testing_set1.zip'], 'Integration - Homework 0, No flags', answer, 'testing_set1.zip')
+		self.tempTestDir(['', 'testing_set1.zip', 'tsquare'], 'Integration - Homework 0, No flags', answer, 'testing_set1.zip')
 
 	def test_pathExistsMove(self):
 		answer = self.pathTestSetup()
