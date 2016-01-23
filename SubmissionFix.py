@@ -527,25 +527,41 @@ class Canvas(AssignmentManager):
 def main(sysargs):
     parser = argparse.ArgumentParser(description='Script to extract student submissions from bulk zip.')
     parser.add_argument('bulksubmission', help='bulk zip of student submissions')
-    parser.add_argument('manager', help='assignment manager submissions were downloaded from', choices=['tsquare', 'canvas'])
-    parser.add_argument('-c', '--csv', help='student list csv file (semicolon seperated)')
-    parser.add_argument('-p', '--path', help='extraction path for bulk submissions zip')
-    parser.add_argument('-m', '--move', help='move student folders out of archive root folder', action='store_true')
-    parser.add_argument('-t', '--time', help=('Flag late submissions past due date. Requires due date and time. '
-                                              'Checks submissions using the US/Eastern timezone. Requires pytz to use. [TSqaure Only]'), 
+    # parser.add_argument('manager', help='assignment manager submissions were downloaded from', choices=['tsquare', 'canvas'])
+    # parser.add_argument('-c', '--csv', help='student list csv file (semicolon seperated)')
+    # parser.add_argument('-p', '--path', help='extraction path for bulk submissions zip')
+    # parser.add_argument('-m', '--move', help='move student folders out of archive root folder', action='store_true')
+    # parser.add_argument('-t', '--time', help=('Flag late submissions past due date. Requires due date and time. '
+    #                                           'Checks submissions using the US/Eastern timezone. Requires pytz to use. [TSqaure Only]'), 
+    #                                     nargs='+', action=requiredLength(2), metavar=('mm/dd/yy', 'hh:mm'))
+
+    subparsers = p.add_subparsers(title='Submission Managers')
+
+    t2 = subparsers.add_parser('tsquare', help='Submission files downloaded from T-Square')
+    t2.add_argument('-c', '--csv', help='student list csv file (semicolon seperated)')
+    t2.add_argument('-p', '--path', help='extraction path for bulk submissions zip')
+    t2.add_argument('-m', '--move', help='move student folders out of archive root folder', action='store_true')
+    t2.add_argument('-t', '--time', help=('Flag late submissions past due date. Requires due date and time. '
+                                              'Checks submissions using the US/Eastern timezone. Requires pytz to use.'), 
                                         nargs='+', action=requiredLength(2), metavar=('mm/dd/yy', 'hh:mm'))
+
+    canv = subparsers.add_parser('canvas', help='Submission files downloaded from Canvas')
+    canv.add_argument('roll', help='csv file of class roll from Canvas (students only, comma seperated)')
+    canv.add_argument('-c', '--csv', help='student list csv file (comma seperated)')
+    canv.add_argument('-p', '--path', help='extraction path for bulk submissions zip')
 
     if len(sysargs) == 1 :
         parser.print_help()
         sys.exit(1)
 
     args = parser.parse_args(sysargs[1:])
-    choice = args.manager
 
-    if choice is 'tsquare' :
-        TSquare.execute(args.bulksubmission, args.path, args.move, args.csv, args.time)
-    if choice is 'canvas' :
-        Canvas.execute(args.bulksubmission, args.roll, args.path, args.move, args.csv)
+    print args
+
+    # if choice is 'tsquare' :
+    #     TSquare.execute(args.bulksubmission, args.path, args.move, args.csv, args.time)
+    # if choice is 'canvas' :
+    #     Canvas.execute(args.bulksubmission, args.roll, args.path, args.move, args.csv)
 
     print "\nDone"
 
