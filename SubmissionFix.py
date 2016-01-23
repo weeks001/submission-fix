@@ -120,6 +120,9 @@ def prepareTimeCheck(time):
     duetime = eastern.localize(duetime)
     return duetime
 
+class BadCSVError(RuntimeError):
+    pass
+
 class AssignmentManager(object):
     """Manager to handle a given assignment submission and collection tool."""
 
@@ -256,7 +259,7 @@ class TSquare(AssignmentManager):
                 extractFiles.append(filename)
 
         if not extractFiles:
-            sys.exit("Error: csv file matches no submissions.")
+            raise BadCSVError("Error: csv file matches no submissions.")
         return extractFiles
 
     def rename(self, directory):
@@ -456,7 +459,7 @@ class Canvas(AssignmentManager):
                 extractFiles.append(filename)
 
         if not extractFiles:
-            sys.exit("Error: csv file matches no submissions.")
+            raise BadCSVError("Error: csv file matches no submissions.")
         return extractFiles
 
     def _processStudentFolder(self, studentFolder):

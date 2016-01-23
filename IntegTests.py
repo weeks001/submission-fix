@@ -45,6 +45,12 @@ class TestIntegration(unittest.TestCase):
 			self.assertTrue(self.integrationLateTest(args, path, test, testset, lateStudents))
 			
 	@contextmanager
+	def exitTempTestDir(self, args, test, answer, testset, roll=None):
+		with self.tempDirectory() as path:
+			with self.assertRaises(SubmissionFix.BadCSVError):
+				self.integrationContentsTest(args, path, test, answer, testset, roll)
+
+	@contextmanager
 	def tempDirectory(self, junkpath=None, files=None):
 		path = os.path.abspath('test_folder')
 		if not os.path.exists(path):
@@ -68,8 +74,10 @@ class TestIntegration(unittest.TestCase):
 		with open(os.devnull, 'w') as devnull:
 			oldstdout = sys.stdout
 			sys.stdout = devnull
-			yield
-			sys.stdout = oldstdout
+			try:
+				yield
+			finally: 
+				sys.stdout = oldstdout
 
 	@contextmanager
 	def inDirectory(self, path):
@@ -105,7 +113,6 @@ class TestIntegration(unittest.TestCase):
 			p = Popen(['python', submissionScript] + args, stdout=PIPE, stderr=PIPE)
 			out, err = p.communicate()
 			p.wait()
-
 		results = []
 		for s in lateStudents:
 			results.append('[{status}]  {student}\n'.format(status=any(s in out for s in lateStudents), student=s))
@@ -191,6 +198,12 @@ class TestTSquareIntegration(TestIntegration, unittest.TestCase):
 		students = ['Fox, Grey', 'Ling, Mei']
 		self.lateTempTestDir(['testing_set1.zip','tsquare', '-t', '02/28/05','23:55'], 'T-Square - Homework 0, -time', 'testing_set1.zip', students)
 
+	def test_pathExistsCSVWrong(self):
+		answer = self.pathTestSetup()
+		csv = os.path.abspath('testingcsv5.csv')
+		self.exitTempTestDir(['', 'testing_set1.zip','tsquare', '-c' + csv], 'T-Square - Homework 0, -csv Wrong', answer, 'testing_set1.zip')
+
+
 	#Testing functions and setup
 	def pathTestSetup(self, root=None, testsetNames=None):
 		basePath = os.path.join(os.getcwd(), 'test_folder')
@@ -249,6 +262,12 @@ class TestCanvasIntegration(TestIntegration, unittest.TestCase):
 		junkpath = os.path.join(os.getcwd(), 'test_folder', 'Sasaki, Jonny')
 		testfile = [os.path.abspath('testingtxt1.txt')]
 		self.loadedTempTestDir(['', 'testing_setc1.zip', 'canvas', 'testroll.csv'], 'Canvas - Homework 0, No flags, Folder Collision', answer, 'testing_setc1.zip', junkpath, testfile, roll='testroll.csv')
+
+	def test_pathExistsCSVWrong(self):
+		answer = self.pathTestSetup()
+		csv = os.path.abspath('testingcsv5.csv')
+		self.exitTempTestDir(['', 'testing_setc1.zip','canvas', 'testroll.csv', '-c' + csv], 'Canvas - Homework 0, -csv Wrong', answer, 'testing_setc1.zip', 'testroll.csv')
+
 
 	#Testing functions and setup
 	def pathTestSetup(self, root=None, testsetNames=None):
