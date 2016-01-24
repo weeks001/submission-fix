@@ -350,6 +350,20 @@ class TestCanvasIntegration(TestIntegration, unittest.TestCase):
 		answer = self.addToSetup(['Sasaki, Johnny'], files, self.pathTestSetup(testsetNames=names))
 		self.tempTestDir(['', 'testing_setc6.zip', 'canvas', 'testroll.csv'], 'Canvas - Homework 0, No Flags, Tar', answer, 'testing_setc6.zip', 'testroll.csv')
 
+	def test_pathExistsZipPath(self):
+		files = [os.path.join('sasakijohnny_1111_1111_HW01','testingtxt1.txt'), os.path.join('sasakijohnny_1111_1111_HW01','patriots.asm')]
+		names = ['Anderson, Donald', 'Baker, Kenneth','Boss, Big', 'Campbell, Roy', 'Emmerich, Hal', 'Fox, Grey',
+					 'Hunter, Naomi', 'Ling, Mei', 'Mantis, Psycho', 'Miller, Kazuhira', 'Ocelot, Revolver', 'Octopus, Decoy', 
+					 'Raven, Vulcan', 'Romanenko, Nastasha', 'Silverburgh, Meryl', 'Snake, Liquid', 
+					 'Snake, Solid', 'Snake, Solidus', 'Wolf, Sniper']
+		answer = self.addToSetup(['Sasaki, Johnny'], files, self.pathTestSetup('NewFolder', testsetNames=names), 'NewFolder')
+		self.tempTestDir(['', 'testing_setc4.zip', 'canvas', 'testroll.csv', '-pNewFolder'], 'Canvas - Homework 0, -path Zip', answer, 'testing_setc4.zip', 'testroll.csv')
+
+	def test_pathExistsMultiFile(self):
+		answer = self.addToSetup(['Sasaki, Johnny'], ['cipher.asm'], self.pathTestSetup())
+		self.tempTestDir(['', 'testing_setc7.zip', 'canvas', 'testroll.csv'], 'Canvas - Homework 0, No flags, Multiple Files per Student', answer, 'testing_setc7.zip', 'testroll.csv')
+
+
 	#Testing functions and setup
 	def pathTestSetup(self, root=None, testsetNames=None):
 		basePath = os.path.join(os.getcwd(), 'test_folder')

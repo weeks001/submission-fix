@@ -429,7 +429,7 @@ class Canvas(AssignmentManager):
         rolllist = self.readCSV(roll)
 
         for name in rolllist:
-            squishedName = name.replace(',', '').replace(' ', '')    
+            squishedName = re.sub(r'\W+', '', name)
             students[squishedName.upper()] = name
 
         return students
@@ -453,7 +453,12 @@ class Canvas(AssignmentManager):
 
         extractFiles = []
         for filename in filelist:
-            student = self.roll[filename.split('_')[0].upper()] #[lastfirstmiddle] = first middle last
+            squishedName = filename.split('_')[0]
+            if squishedName.upper() in self.roll.keys():
+                student = self.roll[squishedName.upper()] 
+            else:
+                print "Warning: {student} not found in roll. Skipping.".format(student=squishedName)
+
             if any([s.upper() == student.upper() for s in students]):
                 extractFiles.append(filename)
 
@@ -493,7 +498,6 @@ class Canvas(AssignmentManager):
                 student = self.roll[filename.split('_')[0].upper()]
                 
                 studentFolder = self._createStudentFolder(directory, student, createdFolders)
-                createdFolders.add(studentFolder)
                 newFilename = self._renameFile(filename)
                 newPath = os.path.join(studentFolder, newFilename)
 
@@ -504,7 +508,7 @@ class Canvas(AssignmentManager):
                     continue
                 shutil.move(os.path.join(directory, filename), newPath)
 
-        return createdFolders
+        return map(os.path.abspath, createdFolders)
 
     def _createStudentFolder(self, directory, student, createdFolders):
         """Creates a folder with student's name, overwriting it if the folder already exists."""
@@ -515,7 +519,8 @@ class Canvas(AssignmentManager):
                 os.makedirs(studentFolder)
         else:
             os.makedirs(studentFolder)
-        return studentFolder
+        createdFolders.add(studentFolder)
+        return os.path.abspath(studentFolder)
 
 
     def _renameFile(self, filename):
@@ -531,9 +536,9 @@ class Canvas(AssignmentManager):
         """Looks through each student folder in the directory and decompresses any compressed files."""
 
         for folder in os.listdir(path):
-            if os.path.isdir(folder) and os.path.abspath(folder) in folderList:
+            folderPath = os.path.abspath(os.path.join(path, folder))
+            if os.path.isdir(folderPath) and folderPath in folderList:
                 extract(os.path.join(path, folder))
-                print os.listdir(os.path.join(path, folder))
 
 
 def main(sysargs):
