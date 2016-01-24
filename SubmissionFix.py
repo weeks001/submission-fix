@@ -332,6 +332,7 @@ class TSquare(AssignmentManager):
 
     def _processStudentFolder(self, studentFolder):
         """Collects and moves stray files, checks for late status, and handles submission files."""
+        
         strayFiles = list(self._getFilePaths(studentFolder))
 
         lateStatus = self._checkTimeStamp(os.path.basename(studentFolder), strayFiles)
@@ -401,6 +402,7 @@ class Canvas(AssignmentManager):
     @classmethod
     def execute(cls, zipfile, roll, path, csv, section):
         """Run all neccessary fix up functions for Canvas submissions."""
+
         manager = cls(roll)
         directory = path or os.getcwd()
 
@@ -446,6 +448,7 @@ class Canvas(AssignmentManager):
 
     def extractBulk(self, zippy, directory=None):
         """Handle extraction of bulk submissions zip file."""
+
         directory = directory or os.getcwd()
         students = self.students or []
 
@@ -460,7 +463,6 @@ class Canvas(AssignmentManager):
 
     def _findStudentsToExtract(self, filelist, students):
         """Given list of paths and students, return list of which paths to be extracted."""
-
 
         extractFiles = []
         for filename in filelist:
@@ -480,6 +482,7 @@ class Canvas(AssignmentManager):
 
     def _processStudentFolder(self, studentFolder):
         """Collects and moves stray files, checks for late status, and handles submission files."""
+
         strayFiles = list(self._getFilePaths(studentFolder))
 
         lateStatus = self._checkTimeStamp(os.path.basename(studentFolder), strayFiles)
@@ -524,6 +527,7 @@ class Canvas(AssignmentManager):
 
     def _createStudentFolder(self, directory, student, createdFolders):
         """Creates a folder with student's name, overwriting it if the folder already exists."""
+
         studentFolder = os.path.join(directory, student)
         if os.path.exists(studentFolder):
             if studentFolder not in createdFolders:
@@ -537,6 +541,7 @@ class Canvas(AssignmentManager):
 
     def _renameFile(self, filename):
         """Rename file into correct format, discarding added '-#'s Canvas adds to resubmissions."""
+
         _, newFilename = filename.rsplit('_', 1)
         tempfilename = re.split('-\d+\.', newFilename)
         if len(tempfilename) > 1:
@@ -555,7 +560,7 @@ class Canvas(AssignmentManager):
 
 def main(sysargs):
     parser = argparse.ArgumentParser(description='Script to extract student submissions from a bulk submissions zip.'
-                                    'The submission manager must be chosen (TSquare, Canvas). If using Canvas, the class'
+                                    ' The submission manager must be chosen (TSquare, Canvas). If using Canvas, the class'
                                     ' roster (from Canvas) must be included as well. Note that with Canvas only csv or'
                                     ' section may be used at a time. If both are used, section will override csv.')
     parser.add_argument('bulksubmission', help='bulk submissions zip file', metavar='submissions.zip')
