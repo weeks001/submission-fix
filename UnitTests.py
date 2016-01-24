@@ -58,11 +58,10 @@ class TestSubfixMethods(unittest.TestCase):
 
     #_createRollDict
     def test_createRollDictNonLetter(self):
-        answer = {'Silverburgh-Sasaki, Meryl': 'silverburghsasakimeryl',
-                'N\'dram, Sophie':'ndramsophie'}
         answer = {'SILVERBURGHSASAKIMERYL': 'Silverburgh-Sasaki, Meryl',
                 'NDRAMSOPHIE': 'N\'dram, Sophie'}
-        self.assertEqual(SubmissionFix.Canvas('testingcsv6.csv')._createRollDict('testingcsv6.csv'), answer)
+        roll, _ = SubmissionFix.Canvas('testingcsv6.csv')._createRollDict('testingcsv6.csv')
+        self.assertEqual(roll, answer)
 
 
 if __name__ == '__main__' :

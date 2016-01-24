@@ -3,10 +3,11 @@ from __future__ import with_statement
 from datetime import datetime, date
 
 """
-This is an awesome script to clean up the bulk submission zip file into a directory with 
-nicely named, (mostly) unnested folders. If specified, it will only extract certain students'
-submissions and/or extract submissions to a specified directory. Note, it will only extract 
-into an empty directory. This way it won't accidently overwrite already extracted submissions.
+This script extracts student submissions from both T-Square and Canvas bundled
+bulk submissions. Depending on the submission manager being used there are 
+different options for cleaning up the submissions. Both allow for extracting
+only specific students and into a given directory. It automatically extracts 
+zip, tar, and tar.gz files that students submit. 
 """
 
 __author__ = "Marie Weeks"
@@ -184,7 +185,7 @@ class AssignmentManager(object):
     def _handleCollision(self, path):
         """Poll user to overwrite path structure or cancel."""
 
-        s = raw_input("Overwrite path structure for path: " + os.path.abspath(path) + " ? (Y/N)")
+        s = raw_input("Overwrite path structure for path: " + os.path.abspath(path) + " ? (Y/N) ")
         if s.upper() not in ['Y', 'YES']:
             sys.exit("User Abort. Collision on path: " + os.path.abspath(path))
 
@@ -436,7 +437,7 @@ class Canvas(AssignmentManager):
             reader.next()
             reader.next()
             for row in reader: 
-                section = row[3].rsplit(' ', 1)[1]
+                section = row[3].rsplit(' ', 1)[1].upper()
                 squishedName = re.sub(r'\W+', '', row[0]).upper()
                 sections.setdefault(section, list()).append(row[0])
                 roster[squishedName] = row[0]
@@ -553,7 +554,10 @@ class Canvas(AssignmentManager):
 
 
 def main(sysargs):
-    parser = argparse.ArgumentParser(description='Script to extract student submissions from bulk zip.')
+    parser = argparse.ArgumentParser(description='Script to extract student submissions from a bulk submissions zip.'
+                                    'The submission manager must be chosen (TSquare, Canvas). If using Canvas, the class'
+                                    ' roster (from Canvas) must be included as well. Note that with Canvas only csv or'
+                                    ' section may be used at a time. If both are used, section will override csv.')
     parser.add_argument('bulksubmission', help='bulk submissions zip file', metavar='submissions.zip')
 
     subparsers = parser.add_subparsers(title='Submission Managers')
@@ -571,7 +575,7 @@ def main(sysargs):
     canv.add_argument('roll', help='csv file of class roll from Canvas (comma seperated)')
     canv.add_argument('-c', '--csv', help='csv file of particular students to extract (semicolon seperated)')
     canv.add_argument('-p', '--path', help='extraction path for bulk submissions zip')
-    canv.add_argument('-s', '--section', help='section to extract from submissions')
+    canv.add_argument('-s', '--section', help='grading section to extract from submissions')
     canv.set_defaults(action='canvas')
 
     if len(sysargs) == 1 :

@@ -1,20 +1,22 @@
-Snake, Solid
-Snake, Liquid
-Snake, Solidus
-Boss, Big
-Fox, Grey
-Ocelot, Revolver
-Emmerich, Hal
-Hunter, Naomi
-Silverburgh, Meryl
-Wolf, Sniper
-Raven, Vulcan
-Mantis, Psycho
-Octopus, Decoy
-Campbell, Roy
-Anderson, Donald
-Baker, Kenneth
-Miller, Kazuhira
-Ling, Mei
-Romanenko, Nastasha
-Sasaki, Johnny
+Student,ID,SIS Login ID,Section,Lab 02 (452),Lab 01 (407),HW02 (416),HW01 (404),Lab grade (453),Assignments Current Score,Assignments Final Score,Homework Current Score,Homework Final Score,Timed Labs Current Score,Timed Labs Final Score,Labs Current Score,Labs Final Score,Quizzes Current Score,Quizzes Final Score,Final Current Score,Final Final Score,Current Score,Final Score
+    Points Possible,,,,100,100,100,100,5,(read only),(read only),(read only),(read only),(read only),(read only),(read only),(read only),(read only),(read only),(read only),(read only),(read only),(read only)
+"Snake, Solid",123,ssnake3,Solid Snake&Simulation - A1,91,90,,,,92,92,,0,,,,0,,,,,,0
+"Snake, Liquid",456,lsnake2,Solid Snake&Simulation - B2,98,92,,,,95,95,,0,,,,0,,,,,,0
+"Snake, Solidus",789,ssnake5,Solid Snake&Simulation - B1,99,84,,,,96,96,,0,,,,0,,,,,,0
+"Boss, Big",741,bboss4,Solid Snake&Simulation - GR,97,100,,,,100,100,,0,,,,0,,,,,,0
+"Fox, Grey",852,gfox7,Solid Snake&Simulation - A1,96,100,,,,99,99,,0,,,,0,,,,,,0
+"Ocelot, Revolver",963,rocelot8,Solid Snake&Simulation - B1,100,90,,,,98,98,,0,,,,0,,,,,,0
+"Emmerich, Hal",357,hemmerich9,Solid Snake&Simulation - A2,91,100,,,,91,91,,0,,,,0,,,,,,0
+"Hunter, Naomi",159,nhunter10,Solid Snake&Simulation - A1,95,100,,,,97,97,,0,,,,0,,,,,,0
+"Silverburgh, Meryl",3214,msilverburgh5,Solid Snake&Simulation - B2,100,100,,,,100,100,,0,,,,0,,,,,,0
+"Wolf, Sniper",1236,swolf9,Solid Snake&Simulation - GR,100,87,,,,100,100,,0,,,,0,,,,,,0
+"Raven, Vulcan",6547,vraven28,Solid Snake&Simulation - A1,93,100,,100,,64,64,100,50,,,,0,,,,,100,40.74
+"Mantis, Psycho",4569,pmantis6,Solid Snake&Simulation - B2,94,0,,99,,99,99,99,49,,,,0,,,,,99,40.74
+"Octopus, Decoy",9874,doctopus19,Solid Snake&Simulation - A2,96,100,,97,,100,100,97,48,,,,0,,,,,97,38.7
+"Campbell, Roy",7896,rcampbell28,Solid Snake&Simulation - GR,95,90,,,,96,96,,0,,,,0,,,,,,0
+"Anderson, Donald",8546,danderson25,Solid Snake&Simulation - A2,100,100,,,,92,92,,0,,,,0,,,,,,0
+"Baker, Kenneth",6521,kbaker16,Solid Snake&Simulation - B1,91,88,,94,,97,97,94,46,,,,0,,,,,94,38.7
+"Miller, Kazuhira",3216,kmiller7,Solid Snake&Simulation - B2,92,100,,,,96,96,,0,,,,0,,,,,,0
+"Ling, Mei",654,mling6,Solid Snake&Simulation - A2,93,100,,,,93,93,,0,,,,0,,,,,,0
+"Romanenko, Nastasha",987,nromanenko2,Solid Snake&Simulation - B1,94,100,,,,91,91,,0,,,,0,,,,,,0
+"Sasaki, Johnny",321,jsasaki4,Solid Snake&Simulation - GR,98,100,,,,90,90,,0,,,,0,,,,,,0
