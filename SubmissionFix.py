@@ -398,14 +398,18 @@ class Canvas(AssignmentManager):
     """Manager to handle Canvas submissions."""
 
     @classmethod
-    def execute(cls, zipfile, roll, path, csv):
+    def execute(cls, zipfile, roll, path, csv, section):
         """Run all neccessary fix up functions for Canvas submissions."""
         manager = cls(roll)
         directory = path or os.getcwd()
 
-
         if csv :
             manager.students = manager.readCSV(csv)
+            print "Extracting students using list: {list}.".format(list=csv)
+
+        if section:
+            manager.students = manager.sections[section.upper()]
+            print "Extracting only section {section}.".format(section=section.upper())
 
         if path :
             manager.createPath(path)
@@ -419,20 +423,25 @@ class Canvas(AssignmentManager):
 
         
     def __init__(self, roll, students=None):
-        self.roll = self._createRollDict(roll)
+        self.roll, self.sections = self._createRollDict(roll)
         self.students = students
 
     def _createRollDict(self, roll):
         """Create a dictionary of the roll, mapping formated names ('lastfirstmiddle') to names."""
 
-        students = {}
-        rolllist = self.readCSV(roll)
+        roster = {}
+        sections = {}
+        with open(roll, 'rb') as f:
+            reader = csv.reader(f, delimiter=',')
+            reader.next()
+            reader.next()
+            for row in reader: 
+                section = row[3].rsplit(' ', 1)[1]
+                squishedName = re.sub(r'\W+', '', row[0]).upper()
+                sections.setdefault(section, list()).append(row[0])
+                roster[squishedName] = row[0]
 
-        for name in rolllist:
-            squishedName = re.sub(r'\W+', '', name)
-            students[squishedName.upper()] = name
-
-        return students
+        return (roster, sections)
 
     def extractBulk(self, zippy, directory=None):
         """Handle extraction of bulk submissions zip file."""
@@ -451,6 +460,7 @@ class Canvas(AssignmentManager):
     def _findStudentsToExtract(self, filelist, students):
         """Given list of paths and students, return list of which paths to be extracted."""
 
+
         extractFiles = []
         for filename in filelist:
             squishedName = filename.split('_')[0]
@@ -458,6 +468,7 @@ class Canvas(AssignmentManager):
                 student = self.roll[squishedName.upper()] 
             else:
                 print "Warning: {student} not found in roll. Skipping.".format(student=squishedName)
+                continue
 
             if any([s.upper() == student.upper() for s in students]):
                 extractFiles.append(filename)
@@ -548,18 +559,19 @@ def main(sysargs):
     subparsers = parser.add_subparsers(title='Submission Managers')
 
     t2 = subparsers.add_parser('tsquare', help='Submission files downloaded from T-Square')
-    t2.add_argument('-c', '--csv', help='student list csv file (semicolon seperated)')
+    t2.add_argument('-c', '--csv', help='csv file of particular students to extract (semicolon seperated)')
     t2.add_argument('-p', '--path', help='extraction path for bulk submissions zip')
     t2.add_argument('-m', '--move', help='move student folders out of archive root folder', action='store_true')
-    t2.add_argument('-t', '--time', help=('Flag late submissions past due date. Requires due date and time. '
-                                              'Checks submissions using the US/Eastern timezone. Requires pytz to use.'), 
+    t2.add_argument('-t', '--time', help=('Flag late submissions past due date. '
+                                          'Checks submissions using the US/Eastern timezone. Requires pytz to use.'), 
                                         nargs='+', action=requiredLength(2), metavar=('mm/dd/yy', 'hh:mm'))
     t2.set_defaults(action='tsquare')
 
     canv = subparsers.add_parser('canvas', help='Submission files downloaded from Canvas')
-    canv.add_argument('roll', help='csv file of class roll from Canvas (students only, semicolon seperated)')
-    canv.add_argument('-c', '--csv', help='student list csv file (semicolon seperated)')
+    canv.add_argument('roll', help='csv file of class roll from Canvas (comma seperated)')
+    canv.add_argument('-c', '--csv', help='csv file of particular students to extract (semicolon seperated)')
     canv.add_argument('-p', '--path', help='extraction path for bulk submissions zip')
+    canv.add_argument('-s', '--section', help='section to extract from submissions')
     canv.set_defaults(action='canvas')
 
     if len(sysargs) == 1 :
@@ -585,7 +597,7 @@ def main(sysargs):
     if args.action == "tsquare":
         TSquare.execute(args.bulksubmission, args.path, args.move, args.csv, args.time)
     elif args.action == "canvas":
-        Canvas.execute(args.bulksubmission, args.roll, args.path, args.csv)
+        Canvas.execute(args.bulksubmission, args.roll, args.path, args.csv, args.section)
 
     print "\nDone"
 
