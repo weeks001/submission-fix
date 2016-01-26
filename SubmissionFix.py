@@ -77,9 +77,9 @@ def unzip(directory, zippy):
         zippy: zip file to unzip
     """
 
-    zfile = zipfile.ZipFile(zippy)
-    for filename in zfile.namelist() :
-        zfile.extract(filename, directory)
+    with zipfile.ZipFile(zippy) as zfile:
+        for filename in zfile.namelist() :
+            zfile.extract(filename, directory)
     os.remove(zippy)
 
 
