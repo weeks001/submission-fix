@@ -185,6 +185,15 @@ class TestTSquareIntegration(TestIntegration, unittest.TestCase):
 		csv = os.path.abspath('testingcsv1.csv')
 		self.tempTestDir(['', 'testing_set1.zip','tsquare', '-c' + csv], 'T-Square - Homework 0, -csv', answer, 'testing_set1.zip')
 
+	def test_pathExistsCSV(self):
+		names = [('Boss, Big', '41b1318bf1cce2d9a40761b02bab065e'), ('Campbell, Roy', '39b73fb441b1c611f3a50be2b8693f03'),
+				 ('Hunter, Naomi', 'd860291b770a7dadd23af116c5334caa'), ('Ocelot, Revolver', 'ef95ea7fbb72b57b38bd5aa7efcf8ca3'), 
+				 ('Silverburgh, Meryl', '205105fa7784a73c91e1412cfc886f65'), ('Snake, Liquid', 'e60a34764ec988f9d4597fe7825cdd63'), 
+				 ('Snake, Solid', '437e86082822caa972544f09da5f1050')]
+		answer = self.pathTestSetup('Homework 0', names)
+		csv = os.path.abspath('testingcsv7.csv')
+		self.tempTestDir(['', 'testing_set1.zip','tsquare', '-c' + csv], 'T-Square - Homework 0, -csv', answer, 'testing_set1.zip')
+
 	#Parens tests - (Malloc)
 	def test_pathExistsNoFlagsParens(self):
 		answer = self.pathTestSetup('Homework 0 (Malloc)')
@@ -294,10 +303,15 @@ class TestCanvasIntegration(TestIntegration, unittest.TestCase):
 		self.tempTestDir(['', 'testing_setc1.zip', 'canvas', 'testroll.csv'], 'Canvas - Homework 0, No flags', answer, 'testing_setc1.zip', 'testroll.csv')
 
 	def test_pathExistsCSV(self):
-		names = ['Boss, Big', 'Campbell, Roy', 'Hunter, Naomi', 'Ocelot, Revolver', 'Silverburgh, Meryl', 
-				 'Snake, Liquid', 'Snake, Solid']
+		names = ['Boss, Big', 'Campbell, Roy', 'Hunter, Naomi', 'Ocelot, Revolver', 'Silverburgh, Meryl', 'Snake, Liquid', 'Snake, Solid']
 		answer = self.pathTestSetup(testsetNames=names)
 		csv = os.path.abspath('testingcsv1.csv')
+		self.tempTestDir(['', 'testing_setc1.zip','canvas', 'testroll.csv', '-c' + csv], 'Canvas - Homework 0, -csv', answer, 'testing_setc1.zip', 'testroll.csv')
+
+	def test_pathExistsCSVSpace(self):
+		names = ['Boss, Big', 'Campbell, Roy', 'Hunter, Naomi', 'Ocelot, Revolver', 'Silverburgh, Meryl', 'Snake, Liquid', 'Snake, Solid']
+		answer = self.pathTestSetup(testsetNames=names)
+		csv = os.path.abspath('testingcsv7.csv')
 		self.tempTestDir(['', 'testing_setc1.zip','canvas', 'testroll.csv', '-c' + csv], 'Canvas - Homework 0, -csv', answer, 'testing_setc1.zip', 'testroll.csv')
 
 	def test_pathExistsPath(self):
@@ -383,6 +397,43 @@ class TestCanvasIntegration(TestIntegration, unittest.TestCase):
 		answer = self.pathTestSetup(testsetNames=names)
 		csv = os.path.abspath('testingcsv1.csv')
 		self.tempTestDir(['', 'testing_setc8.zip','canvas', 'testroll.csv', '-c' + csv], 'Canvas - Homework 0 Quiz Based Submissions, -csv', answer, 'testing_setc8.zip', 'testroll.csv')
+
+	#New tests =====================================
+	def test_pathExistsTarMove1(self):
+		files = ['testingtxt1.txt','patriots.asm']
+		names = ['Anderson, Donald', 'Baker, Kenneth','Boss, Big', 'Campbell, Roy', 'Emmerich, Hal', 'Fox, Grey',
+					 'Hunter, Naomi', 'Ling, Mei', 'Mantis, Psycho', 'Miller, Kazuhira', 'Ocelot, Revolver', 'Octopus, Decoy', 
+					 'Raven, Vulcan', 'Romanenko, Nastasha', 'Silverburgh, Meryl', 'Snake, Liquid', 
+					 'Snake, Solid', 'Snake, Solidus', 'Wolf, Sniper']
+		answer = self.addToSetup(['Sasaki, Johnny'], files, self.pathTestSetup(testsetNames=names))
+		self.tempTestDir(['', 'testing_setc6.zip', 'canvas', 'testroll.csv', '-m1'], 'Canvas - Homework 0, -m 1, Tar', answer, 'testing_setc6.zip', 'testroll.csv')
+
+	def test_pathExistsTarMove1Nested(self):
+		files = [os.path.join('Texts','testingtxt1.txt'),'patriots.asm']
+		names = ['Anderson, Donald', 'Baker, Kenneth','Boss, Big', 'Campbell, Roy', 'Emmerich, Hal', 'Fox, Grey',
+					 'Hunter, Naomi', 'Ling, Mei', 'Mantis, Psycho', 'Miller, Kazuhira', 'Ocelot, Revolver', 'Octopus, Decoy', 
+					 'Raven, Vulcan', 'Romanenko, Nastasha', 'Silverburgh, Meryl', 'Snake, Liquid', 
+					 'Snake, Solid', 'Snake, Solidus', 'Wolf, Sniper']
+		answer = self.addToSetup(['Sasaki, Johnny'], files, self.pathTestSetup(testsetNames=names))
+		self.tempTestDir(['', 'testing_setc10.zip', 'canvas', 'testroll.csv', '-m1'], 'Canvas - Homework 0, -m 1, Tar', answer, 'testing_setc10.zip', 'testroll.csv')
+
+	def test_pathExistsTarMoveAll(self):
+		files = ['testingtxt1.txt','patriots.asm']
+		names = ['Anderson, Donald', 'Baker, Kenneth','Boss, Big', 'Campbell, Roy', 'Emmerich, Hal', 'Fox, Grey',
+					 'Hunter, Naomi', 'Ling, Mei', 'Mantis, Psycho', 'Miller, Kazuhira', 'Ocelot, Revolver', 'Octopus, Decoy', 
+					 'Raven, Vulcan', 'Romanenko, Nastasha', 'Silverburgh, Meryl', 'Snake, Liquid', 
+					 'Snake, Solid', 'Snake, Solidus', 'Wolf, Sniper']
+		answer = self.addToSetup(['Sasaki, Johnny'], files, self.pathTestSetup(testsetNames=names))
+		self.tempTestDir(['', 'testing_setc9.zip', 'canvas', 'testroll.csv', '-mall'], 'Canvas - Homework 0, -m all, Tar', answer, 'testing_setc9.zip', 'testroll.csv')
+
+	def test_pathExistsTarMoveAllMultipleFolders(self):
+		files = ['testingtxt1.txt','patriots.asm']
+		names = ['Anderson, Donald', 'Baker, Kenneth','Boss, Big', 'Campbell, Roy', 'Emmerich, Hal', 'Fox, Grey',
+					 'Hunter, Naomi', 'Ling, Mei', 'Mantis, Psycho', 'Miller, Kazuhira', 'Ocelot, Revolver', 'Octopus, Decoy', 
+					 'Raven, Vulcan', 'Romanenko, Nastasha', 'Silverburgh, Meryl', 'Snake, Liquid', 
+					 'Snake, Solid', 'Snake, Solidus', 'Wolf, Sniper']
+		answer = self.addToSetup(['Sasaki, Johnny'], files, self.pathTestSetup(testsetNames=names))
+		self.tempTestDir(['', 'testing_setc11.zip', 'canvas', 'testroll.csv', '-mall'], 'Canvas - Homework 0, -m all, Tar', answer, 'testing_setc11.zip', 'testroll.csv')
 
 	#Testing functions and setup
 	def pathTestSetup(self, root=None, testsetNames=None):

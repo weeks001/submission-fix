@@ -129,6 +129,9 @@ def prepareTimeCheck(time):
 class BadCSVError(RuntimeError):
     pass
 
+class MismatchError(RuntimeError):
+    pass
+
 class AssignmentManager(object):
     """Manager to handle a given assignment submission and collection tool."""
 
@@ -168,7 +171,7 @@ class AssignmentManager(object):
             for row in reader :
                 students.append(row)
 
-        students = [s[0] for s in students]
+        students = [s[0].rstrip() for s in students]
 
         return students
 
@@ -406,7 +409,7 @@ class Canvas(AssignmentManager):
     """Manager to handle Canvas submissions."""
 
     @classmethod
-    def execute(cls, zipfile, roll, path, csv, section):
+    def execute(cls, zipfile, roll, path, csv, section, move):
         """Run all neccessary fix up functions for Canvas submissions."""
 
         manager = cls(roll)
@@ -434,11 +437,10 @@ class Canvas(AssignmentManager):
         print "Moving and renaming submission files."
         folders = manager.move(tempPath, roll, zipfile, csv)
         print "Decompressing any compressed files."
-        manager._inspectFolders(tempPath, folders)
-        print "Moving submissions out of temporary folder"
+        manager._inspectFolders(tempPath, folders, move)
+        print "Moving submissions out of temporary folder."
         manager._moveAllFiles(directory, tempPath)
         shutil.rmtree(tempPath)
-
         
     def __init__(self, roll, students=None):
         self.roll, self.sections = self._createRollDict(roll)
@@ -572,7 +574,7 @@ class Canvas(AssignmentManager):
 
         match = self._getMatch(filename)
         if not match:
-            raise RuntimeError('Pattern not matched on: {filename}'.format(filename=filename))
+            raise MismatchError('Pattern not matched on: {filename}'.format(filename=filename))
         student = match.group('student').replace('_','')
         newFilename = match.group('filename')
 
@@ -586,13 +588,45 @@ class Canvas(AssignmentManager):
             filename = '.'.join(tempfilename)
         return filename
 
-    def _inspectFolders(self, path, folderList):
+    def _inspectFolders(self, path, folderList, move):
         """Looks through each student folder in the directory and decompresses any compressed files."""
 
         for folder in os.listdir(path):
             folderPath = os.path.abspath(os.path.join(path, folder))
             if os.path.isdir(folderPath) and folderPath in folderList:
                 extract(os.path.join(path, folder))
+                if move == '1':
+                    self._flattenOneLevel(folderPath)
+                if move == 'all':
+                    self._flattenAllLevels(folderPath)
+
+    def _flattenOneLevel(self, source):
+        """Flatten the source directory's structure by one level."""
+
+        for directory in os.listdir(source):
+            currentFolder = os.path.join(source, directory)
+            if os.path.isdir(currentFolder):
+                for file in os.listdir(currentFolder):
+                    shutil.move(os.path.join(currentFolder, file), os.path.join(source, file))
+
+                try:
+                    shutil.rmtree(currentFolder)
+                except OSError:
+                    print "Error: Unable to remove path: " + os.path.abspath(path)
+
+    def _flattenAllLevels(self, source):
+        """Flatten the source directory's struture by all levels."""
+
+        for root, directories, files in os.walk(source):
+            for file in files:
+                filePath = os.path.join(root, file)
+                destination = os.path.join(source, file)
+                if filePath != destination:
+                    shutil.move(filePath, destination)
+
+        for directory in os.listdir(source):
+            if os.path.isdir(os.path.join(source, directory)):
+                shutil.rmtree(os.path.join(source,directory))
 
     def _moveAllFiles(self, destination, source):
         """Moves every file in the source directory to the destination directory."""
@@ -600,14 +634,7 @@ class Canvas(AssignmentManager):
         for directory in os.listdir(source):
             if os.path.isdir(os.path.join(source, directory)):
                 destPath = os.path.join(destination, directory)
-
-                if os.path.isdir(destPath):
-                    try:
-                        shutil.rmtree(destPath)
-                    except OSError:
-                        sys.exit("Error: Unable to remove path: " + os.path.abspath(path))
-
-                shutil.copytree(os.path.join(source, directory), destPath)
+                shutil.move(os.path.join(source, directory), destPath)
 
 
 
@@ -634,6 +661,9 @@ def main(sysargs):
     canv.add_argument('-c', '--csv', help='csv file of particular students to extract (semicolon seperated)')
     canv.add_argument('-p', '--path', help='extraction path for bulk submissions zip')
     canv.add_argument('-s', '--section', help='grading section to extract from submissions')
+    canv.add_argument('-m', '--move', help=('move extracted files within student folder out' 
+                    ' one level or all levels (completely collapse directory structure)'), 
+                    choices=['1', 'all'])
     canv.set_defaults(action='canvas')
 
     if len(sysargs) == 1 :
@@ -659,7 +689,7 @@ def main(sysargs):
     if args.action == "tsquare":
         TSquare.execute(args.bulksubmission, args.path, args.move, args.csv, args.time)
     elif args.action == "canvas":
-        Canvas.execute(args.bulksubmission, args.roll, args.path, args.csv, args.section)
+        Canvas.execute(args.bulksubmission, args.roll, args.path, args.csv, args.section, args.move)
 
     print "\nDone"
 
