@@ -30,6 +30,12 @@ try :
 except ImportError :
     findTime = False
 
+_student_file_patterns = tuple(map(re.compile, [
+    r'^(?P<student>[^0-9]+)\d+_question_(\d+_){2}(?P<filename>.*)$',
+    r'^(?P<student>[^_0-9]+)_(\d+_){2}(?P<filename>.*)$',
+    r'^(?P<student>[^_0-9]+)_late_(\d+_){2}(?P<filename>.*)$'
+]))
+
 def requiredLength(nargs):
     """Checks that input arguments for given flag are of the specified number.
 
@@ -420,7 +426,7 @@ class Canvas(AssignmentManager):
         print "Extracting bulk submissions."
         manager.extractBulk(zipfile, directory=path) 
         print "Moving and renaming submission files."
-        folders = manager.move(directory)
+        folders = manager.move(directory, roll, zipfile, csv)
         print "Decompressing any compressed files."
         manager._inspectFolders(directory, folders)
 
@@ -466,7 +472,8 @@ class Canvas(AssignmentManager):
 
         extractFiles = []
         for filename in filelist:
-            squishedName = filename.split('_')[0]
+            squishedName, _ = self._parseFileName(filename)
+
             if squishedName.upper() in self.roll.keys():
                 student = self.roll[squishedName.upper()] 
             else:
@@ -492,7 +499,7 @@ class Canvas(AssignmentManager):
 
         return lateStatus
 
-    def move(self, directory):
+    def move(self, directory, roster, submissions, csv):
         """Moves files into the correct student folder.
 
         Moves all files starting with a student's name into a folder of their name. Creates a student folder
@@ -509,11 +516,18 @@ class Canvas(AssignmentManager):
 
         createdFolders = set()
         for filename in os.listdir(directory):
-            if filename.split('_')[0].upper() in self.roll.keys():
-                student = self.roll[filename.split('_')[0].upper()]
+
+            #TODO: Fix this hackyness. Move all files into a temp directory and overwrite the original
+            if os.path.isdir(filename) or filename == roster or filename == submissions or filename == csv:
+                continue
+
+            studentName, studentFile = self._parseFileName(filename)
+                       
+            if studentName.upper() in self.roll.keys():
+                student = self.roll[studentName.upper()]
                 
                 studentFolder = self._createStudentFolder(directory, student, createdFolders)
-                newFilename = self._renameFile(filename)
+                newFilename = self._renameFile(studentFile)
                 newPath = os.path.join(studentFolder, newFilename)
 
                 if os.path.exists(newPath):
@@ -538,16 +552,32 @@ class Canvas(AssignmentManager):
         createdFolders.add(studentFolder)
         return os.path.abspath(studentFolder)
 
+    def _getMatch(self, student):
+        """Try to match student string with pattern and stop when the pattern is found."""
+        
+        for p in _student_file_patterns:
+            m = p.match(student)
+            if m:
+                return m
+
+    def _parseFileName(self, filename):
+        """Parse a Canvas filename into student name and submission filename."""
+
+        match = self._getMatch(filename)
+        if not match:
+            raise RuntimeError('Pattern not matched on: {filename}'.format(filename=filename))
+        student = match.group('student').replace('_','')
+        newFilename = match.group('filename')
+
+        return (student, newFilename)
 
     def _renameFile(self, filename):
         """Rename file into correct format, discarding added '-#'s Canvas adds to resubmissions."""
 
-        _, newFilename = filename.rsplit('_', 1)
-        tempfilename = re.split('-\d+\.', newFilename)
+        tempfilename = re.split('-\d+\.', filename)
         if len(tempfilename) > 1:
-            newFilename = '.'.join(tempfilename)
-        return newFilename
-
+            filename = '.'.join(tempfilename)
+        return filename
 
     def _inspectFolders(self, path, folderList):
         """Looks through each student folder in the directory and decompresses any compressed files."""
