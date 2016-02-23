@@ -597,9 +597,10 @@ class Canvas(AssignmentManager):
     def _moveAllFiles(self, destination, source):
         """Moves every file in the source directory to the destination directory."""
 
-        for root, directories, files in os.walk(source):
-            for directory in directories:
+        for directory in os.listdir(source):
+            if os.path.isdir(os.path.join(source, directory)):
                 destPath = os.path.join(destination, directory)
+
                 if os.path.isdir(destPath):
                     try:
                         shutil.rmtree(destPath)
@@ -607,7 +608,8 @@ class Canvas(AssignmentManager):
                         sys.exit("Error: Unable to remove path: " + os.path.abspath(path))
 
                 shutil.copytree(os.path.join(source, directory), destPath)
-                
+
+
 
 def main(sysargs):
     parser = argparse.ArgumentParser(description='Script to extract student submissions from a bulk submissions zip.'
