@@ -423,12 +423,21 @@ class Canvas(AssignmentManager):
         if path :
             manager.createPath(path)
 
+        tempPath = os.path.join(os.getcwd(), 'temp_extraction_folder')
+        try:
+            os.makedirs(tempPath)
+        except OSError:
+                print "Error: Temporary extraction path already exists."
+
         print "Extracting bulk submissions."
-        manager.extractBulk(zipfile, directory=path) 
+        manager.extractBulk(zipfile, directory=tempPath) 
         print "Moving and renaming submission files."
-        folders = manager.move(directory, roll, zipfile, csv)
+        folders = manager.move(tempPath, roll, zipfile, csv)
         print "Decompressing any compressed files."
-        manager._inspectFolders(directory, folders)
+        manager._inspectFolders(tempPath, folders)
+        print "Moving submissions out of temporary folder"
+        manager._moveAllFiles(directory, tempPath)
+        shutil.rmtree(tempPath)
 
         
     def __init__(self, roll, students=None):
@@ -516,9 +525,7 @@ class Canvas(AssignmentManager):
 
         createdFolders = set()
         for filename in os.listdir(directory):
-
-            #TODO: Fix this hackyness. Move all files into a temp directory and overwrite the original
-            if os.path.isdir(filename) or filename == roster or filename == submissions or filename == csv:
+            if os.path.isdir(os.path.join(directory, filename)):
                 continue
 
             studentName, studentFile = self._parseFileName(filename)
@@ -587,6 +594,20 @@ class Canvas(AssignmentManager):
             if os.path.isdir(folderPath) and folderPath in folderList:
                 extract(os.path.join(path, folder))
 
+    def _moveAllFiles(self, destination, source):
+        """Moves every file in the source directory to the destination directory."""
+
+        for root, directories, files in os.walk(source):
+            for directory in directories:
+                destPath = os.path.join(destination, directory)
+                if os.path.isdir(destPath):
+                    try:
+                        shutil.rmtree(destPath)
+                    except OSError:
+                        sys.exit("Error: Unable to remove path: " + os.path.abspath(path))
+
+                shutil.copytree(os.path.join(source, directory), destPath)
+                
 
 def main(sysargs):
     parser = argparse.ArgumentParser(description='Script to extract student submissions from a bulk submissions zip.'

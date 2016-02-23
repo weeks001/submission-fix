@@ -368,6 +368,14 @@ class TestCanvasIntegration(TestIntegration, unittest.TestCase):
 		answer = self.pathTestSetup(testsetNames=names)
 		self.tempTestDir(['', 'testing_setc1.zip','canvas', 'testroll.csv', '-sa1'], 'Canvas - Homework 0, -s a1', answer, 'testing_setc1.zip', 'testroll.csv')
 
+	def test_pathExistsQuizzes(self):
+		answer = self.pathTestSetup()
+		self.tempTestDir(['', 'testing_setc8.zip', 'canvas', 'testroll.csv'], 'Canvas - Homework 0, No flags, Quiz Based Submissions', answer, 'testing_setc8.zip', 'testroll.csv')
+
+	def test_pathExistsSection(self):
+		names = ['Snake, Solid', 'Fox, Grey', 'Hunter, Naomi', 'Raven, Vulcan']
+		answer = self.pathTestSetup(testsetNames=names)
+		self.tempTestDir(['', 'testing_setc8.zip','canvas', 'testroll.csv', '-sa1'], 'Canvas - Homework 0 Quiz Based Submissions, -s a1', answer, 'testing_setc8.zip', 'testroll.csv')
 
 	#Testing functions and setup
 	def pathTestSetup(self, root=None, testsetNames=None):
