@@ -3,3 +3,4 @@ tests_logC.txt
 *.pyc
 *.swp
 .fuse_hidden*
+subfix notes.txt
