@@ -129,6 +129,9 @@ def prepareTimeCheck(time):
 class BadCSVError(RuntimeError):
     pass
 
+class MismatchError(RuntimeError):
+    pass
+
 class AssignmentManager(object):
     """Manager to handle a given assignment submission and collection tool."""
 
@@ -434,15 +437,15 @@ class Canvas(AssignmentManager):
         print "Moving and renaming submission files."
         folders = manager.move(tempPath, roll, zipfile, csv)
         print "Decompressing any compressed files."
-        manager._inspectFolders(tempPath, folders)
+        manager._inspectFolders(tempPath, folders, move)
         print "Moving submissions out of temporary folder"
         manager._moveAllFiles(directory, tempPath)
         shutil.rmtree(tempPath)
 
-        if move:
-            pass
-            print "Collapsing student folder structures by {level} level.".format(level=move)
-            #go through afterward and collapse directories
+        # if move:
+        #     pass
+        #     print "Collapsing student folder structures by {level} level.".format(level=move)
+        #     #go through afterward and collapse directories
 
         
     def __init__(self, roll, students=None):
@@ -577,7 +580,7 @@ class Canvas(AssignmentManager):
 
         match = self._getMatch(filename)
         if not match:
-            raise RuntimeError('Pattern not matched on: {filename}'.format(filename=filename))
+            raise MismatchError('Pattern not matched on: {filename}'.format(filename=filename))
         student = match.group('student').replace('_','')
         newFilename = match.group('filename')
 
@@ -591,13 +594,39 @@ class Canvas(AssignmentManager):
             filename = '.'.join(tempfilename)
         return filename
 
-    def _inspectFolders(self, path, folderList):
+    def _inspectFolders(self, path, folderList, move):
         """Looks through each student folder in the directory and decompresses any compressed files."""
 
         for folder in os.listdir(path):
             folderPath = os.path.abspath(os.path.join(path, folder))
             if os.path.isdir(folderPath) and folderPath in folderList:
                 extract(os.path.join(path, folder))
+                if move == '1':
+                    self._flattenOneLevel(folderPath)
+                if move == 'all':
+                    self._flattenAllLevels(folderPath)
+
+    def _flattenOneLevel(self, source):
+        """Flatten the directory's structure by one level."""
+
+        for directory in os.listdir(source):
+            currentFolder = os.path.join(source, directory)
+            if os.path.isdir(currentFolder):
+                for file in os.listdir(currentFolder):
+                    path = os.path.join(currentFolder, file)
+                    if os.path.isdir(path):
+                        shutil.copytree(path, directory)
+                    shutil.copy(path, os.path.join(source, file))
+
+                try:
+                    shutil.rmtree(currentFolder)
+                except OSError:
+                    print "Error: Unable to remove path: " + os.path.abspath(path)
+
+
+    def _flattenAllLevels(self, source):
+        """Flatten the directory's struture by all levels."""
+
 
     def _moveAllFiles(self, destination, source):
         """Moves every file in the source directory to the destination directory."""
@@ -639,8 +668,9 @@ def main(sysargs):
     canv.add_argument('-c', '--csv', help='csv file of particular students to extract (semicolon seperated)')
     canv.add_argument('-p', '--path', help='extraction path for bulk submissions zip')
     canv.add_argument('-s', '--section', help='grading section to extract from submissions')
-    canv.add_argument('-m', '--move', help='move extracted files out one level or all levels' 
-                    '(completely collapse directory structure)', choices=['1', 'all'])
+    canv.add_argument('-m', '--move', help=('move extracted files within student folder out' 
+                    ' one level or all levels (completely collapse directory structure)'), 
+                    choices=['1', 'all'])
     canv.set_defaults(action='canvas')
 
     if len(sysargs) == 1 :
