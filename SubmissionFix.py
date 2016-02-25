@@ -627,6 +627,19 @@ class Canvas(AssignmentManager):
     def _flattenAllLevels(self, source):
         """Flatten the directory's struture by all levels."""
 
+        for root, directories, files in os.walk(source):
+            for file in files:
+                filePath = os.path.join(root, file)
+                destination = os.path.join(source, file)
+                if filePath != destination:
+                    shutil.copy(os.path.join(root, file), os.path.join(source, file))
+
+        for directory in os.listdir(source):
+            if os.path.isdir(os.path.join(source, directory)):
+                shutil.rmtree(os.path.join(source,directory))
+
+
+
 
     def _moveAllFiles(self, destination, source):
         """Moves every file in the source directory to the destination directory."""
