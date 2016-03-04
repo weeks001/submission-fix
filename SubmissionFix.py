@@ -171,7 +171,7 @@ class AssignmentManager(object):
             for row in reader :
                 students.append(row)
 
-        students = [s[0] for s in students]
+        students = [s[0].rstrip() for s in students]
 
         return students
 
@@ -438,15 +438,9 @@ class Canvas(AssignmentManager):
         folders = manager.move(tempPath, roll, zipfile, csv)
         print "Decompressing any compressed files."
         manager._inspectFolders(tempPath, folders, move)
-        print "Moving submissions out of temporary folder"
+        print "Moving submissions out of temporary folder."
         manager._moveAllFiles(directory, tempPath)
         shutil.rmtree(tempPath)
-
-        # if move:
-        #     pass
-        #     print "Collapsing student folder structures by {level} level.".format(level=move)
-        #     #go through afterward and collapse directories
-
         
     def __init__(self, roll, students=None):
         self.roll, self.sections = self._createRollDict(roll)
@@ -607,39 +601,32 @@ class Canvas(AssignmentManager):
                     self._flattenAllLevels(folderPath)
 
     def _flattenOneLevel(self, source):
-        """Flatten the directory's structure by one level."""
+        """Flatten the source directory's structure by one level."""
 
         for directory in os.listdir(source):
             currentFolder = os.path.join(source, directory)
             if os.path.isdir(currentFolder):
                 for file in os.listdir(currentFolder):
-                    path = os.path.join(currentFolder, file)
-                    if os.path.isdir(path):
-                        shutil.copytree(path, directory)
-                    shutil.copy(path, os.path.join(source, file))
+                    shutil.move(os.path.join(currentFolder, file), os.path.join(source, file))
 
                 try:
                     shutil.rmtree(currentFolder)
                 except OSError:
                     print "Error: Unable to remove path: " + os.path.abspath(path)
 
-
     def _flattenAllLevels(self, source):
-        """Flatten the directory's struture by all levels."""
+        """Flatten the source directory's struture by all levels."""
 
         for root, directories, files in os.walk(source):
             for file in files:
                 filePath = os.path.join(root, file)
                 destination = os.path.join(source, file)
                 if filePath != destination:
-                    shutil.copy(os.path.join(root, file), os.path.join(source, file))
+                    shutil.move(filePath, destination)
 
         for directory in os.listdir(source):
             if os.path.isdir(os.path.join(source, directory)):
                 shutil.rmtree(os.path.join(source,directory))
-
-
-
 
     def _moveAllFiles(self, destination, source):
         """Moves every file in the source directory to the destination directory."""
@@ -647,14 +634,7 @@ class Canvas(AssignmentManager):
         for directory in os.listdir(source):
             if os.path.isdir(os.path.join(source, directory)):
                 destPath = os.path.join(destination, directory)
-
-                if os.path.isdir(destPath):
-                    try:
-                        shutil.rmtree(destPath)
-                    except OSError:
-                        sys.exit("Error: Unable to remove path: " + os.path.abspath(path))
-
-                shutil.copytree(os.path.join(source, directory), destPath)
+                shutil.move(os.path.join(source, directory), destPath)
 
 
 
