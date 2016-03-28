@@ -409,7 +409,7 @@ class Canvas(AssignmentManager):
     """Manager to handle Canvas submissions."""
 
     @classmethod
-    def execute(cls, zipfile, roll, path, csv, section, move):
+    def execute(cls, zipfile, roll, path, csv, section, move, grade):
         """Run all neccessary fix up functions for Canvas submissions."""
 
         manager = cls(roll)
@@ -440,6 +440,10 @@ class Canvas(AssignmentManager):
         manager._inspectFolders(tempPath, folders, move)
         print "Moving submissions out of temporary folder."
         manager._moveAllFiles(directory, tempPath)
+
+        if grade:
+            manager._insertGradingFiles(directory)
+
         shutil.rmtree(tempPath)
         
     def __init__(self, roll, students=None):
@@ -636,6 +640,10 @@ class Canvas(AssignmentManager):
                 destPath = os.path.join(destination, directory)
                 shutil.move(os.path.join(source, directory), destPath)
 
+    def _insertGradingFiles(self, destination, source):
+        """Inserts the given grading files into each student's directory."""
+
+
 
 
 def main(sysargs):
@@ -664,6 +672,7 @@ def main(sysargs):
     canv.add_argument('-m', '--move', help=('move extracted files within student folder out' 
                     ' one level or all levels (completely collapse directory structure)'), 
                     choices=['1', 'all'])
+    canv.add_arguemtn('-g', '--grade', help='copy grading files into each student directory')
     canv.set_defaults(action='canvas')
 
     if len(sysargs) == 1 :
@@ -689,7 +698,7 @@ def main(sysargs):
     if args.action == "tsquare":
         TSquare.execute(args.bulksubmission, args.path, args.move, args.csv, args.time)
     elif args.action == "canvas":
-        Canvas.execute(args.bulksubmission, args.roll, args.path, args.csv, args.section, args.move)
+        Canvas.execute(args.bulksubmission, args.roll, args.path, args.csv, args.section, args.move, args.grade)
 
     print "\nDone"
 
