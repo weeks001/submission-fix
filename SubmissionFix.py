@@ -102,10 +102,14 @@ def untar(directory, tarry):
     Tested on .tar.gz. Unsure if this will work on other tar files. 
     """
 
-    tar = tarfile.open(tarry)
-    tar.extractall(directory)
-    tar.close()
-    os.remove(tarry)
+     try:
+        tar = tarfile.open(tarry)
+        tar.extractall(directory)
+        tar.close()
+        os.remove(tarry)
+    except tarfile.ReadError:
+        print ("Warning: Could not open tar file: " + tarry + 
+                "The file could have been compressed as a another type and renamed.")
 
 def prepareTimeCheck(time):
     """Prepares user input timestamp for later use
@@ -441,14 +445,23 @@ class Canvas(AssignmentManager):
         print "Moving submissions out of temporary folder."
         manager._moveAllFiles(directory, tempPath)
 
-        if grade:
-            manager._insertGradingFiles(directory)
-
         shutil.rmtree(tempPath)
+
+        if grade:
+            gradePath = os.path.join(os.getcwd(), 'temp_grading_folder')
+            try:
+                os.makedirs(gradePath)
+            except OSError:
+                    print "Error: Temporary grading materials path already exists."
+            manager._insertGradingFiles(directory, gradePath)
+
+        shutil.rmtree(gradePath)
         
-    def __init__(self, roll, students=None):
+        
+    def __init__(self, roll, students=None, files = None):
         self.roll, self.sections = self._createRollDict(roll)
         self.students = students
+        self.files = files
 
     def _createRollDict(self, roll):
         """Create a dictionary of the roll, mapping formated names ('lastfirstmiddle') to names."""
@@ -640,10 +653,28 @@ class Canvas(AssignmentManager):
                 destPath = os.path.join(destination, directory)
                 shutil.move(os.path.join(source, directory), destPath)
 
-    def _insertGradingFiles(self, destination, source):
+    def _copyAllGradingFiles(self, destination, source):
         """Inserts the given grading files into each student's directory."""
+        
+        for directory in os.listdir(destination):
+            if os.path.isdir(os.path.join(destination, directory)):
+                destPath = os.path.join(destination, directory)
+
+                for fn in os.listdir(source):
+                    
 
 
+                shutil.copy(os.path.join(source, d))
+
+
+
+
+    def _setUpGradingFilesTemp(self, directory, files):
+        """Sets up the temporary grading materials folder with the grading files."""
+
+        for fn in self.files:
+            shutil.copy(fn, directory)
+        extract(directory)
 
 
 def main(sysargs):
