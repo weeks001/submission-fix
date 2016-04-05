@@ -102,7 +102,13 @@ def untar(directory, tarry):
     Tested on .tar.gz. Unsure if this will work on other tar files. 
     """
 
-    tar = tarfile.open(tarry)
+    try:
+        tar = tarfile.open(tarry)
+    except tarfile.ReadError:
+        print ("Warning: Could not open tar file: " + tarry + 
+                " The file could have been compressed as a another type and renamed.")
+        return
+
     tar.extractall(directory)
     tar.close()
     os.remove(tarry)
