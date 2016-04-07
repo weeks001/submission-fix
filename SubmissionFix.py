@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 from __future__ import with_statement
 from datetime import datetime, date
+from subprocess import Popen, PIPE
 
 """
 This script extracts student submissions from both T-Square and Canvas bundled
@@ -15,6 +16,7 @@ __author__ = "Marie Weeks"
 import os
 import sys
 import csv
+import struct
 import shutil
 import zipfile
 import tarfile
@@ -90,28 +92,75 @@ def unzip(directory, zippy):
 
 
 def untar(directory, tarry):
-    """Extracts a given tar file into the given directory
+    """Extracts a the tar file into the given directory
 
-    Takes in a tar file and extracts its contents to the given directory. Afterwards, the
-    tar file is removed.
+    The system tar function will be attempted first to extract the tar file. This will 
+    most likley fail on Windows. If the system call fails, the Python tar functions 
+    are tried next. The tar file is checked against a blacklist for bad folder 
+    names and creates a copy of the tar filed (named 'backup_<tarname>'). If 
+    extraction succeeds, the backup file is removed. If if fails, an error is printed
+    and the user must handle that file manually. 
+
+    Note: Python may extract some files before failing. If the error is printed, Python
+    failed to extract some number of files and deleted them from the original archive.
+    The user must manually use the backup to extract all files in this case.
 
     Args:
         directory: directory where files will be extracted to
         tarry: tar file to extract
+    """
 
-    Tested on .tar.gz. Unsure if this will work on other tar files. 
+    blacklist = ['.', '..', '~']
+
+
+    result = systemTar(directory, tarry)
+    if result != 0:
+        head, tail = os.path.split(tarry)
+        backup = os.path.join(head, 'backup_' + tail)
+
+        try:
+            tar = tarfile.open(tarry)
+        except tarfile.ReadError:
+            print ("Warning: Could not open tar file. "
+                    "The file could have been compressed as another type and renamed. "
+                    "File: " + tarry)
+            return
+
+        if list(set(blacklist) & set(tar.getnames())):
+            shutil.copy(tarry, backup)
+
+        try: 
+            tar.extractall(directory)
+            if os.path.isfile(backup):
+                os.remove(backup)
+        except struct.error:
+            print ("Error: Python extraction failed. Extract backup tar manually. "
+                    "File: " + tarry)
+
+        tar.close()
+    os.remove(tarry)
+
+def systemTar(directory, tarry):
+    """Extracts a tar file into a directory using the system tar function. 
+
+    This is Unix only. Returns the returncode for the process if there was an error 
+    and 1 if the subprocess was unable to start.
+
+    Args:
+        directory: directory where files will be extracted to
+        tarry: tar file to extract
     """
 
     try:
-        tar = tarfile.open(tarry)
-    except tarfile.ReadError:
-        print ("Warning: Could not open tar file: " + tarry + 
-                " The file could have been compressed as a another type and renamed.")
-        return
+        process = Popen(['tar', '-xzvf', tarry, '-C', directory], stdout=PIPE, stderr=PIPE)
+        stdout, stderr = process.communicate()
+        if process.returncode:
+            print "System tar extraction failed."
+        return process.returncode
+    except:
+        return 1
 
-    tar.extractall(directory)
-    tar.close()
-    os.remove(tarry)
+
 
 def prepareTimeCheck(time):
     """Prepares user input timestamp for later use
