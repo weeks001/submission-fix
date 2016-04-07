@@ -15,6 +15,7 @@ __author__ = "Marie Weeks"
 import os
 import sys
 import csv
+import struct
 import shutil
 import zipfile
 import tarfile
@@ -104,12 +105,16 @@ def untar(directory, tarry):
 
     try:
         tar = tarfile.open(tarry)
+        tar.extractall(directory)
     except tarfile.ReadError:
         print ("Warning: Could not open tar file: " + tarry + 
                 " The file could have been compressed as a another type and renamed.")
         return
+    except struct.error:
+        print "Warning: Could not extract tar properly: " + tarry
 
-    tar.extractall(directory)
+
+    # tar.extractall(directory)
     tar.close()
     os.remove(tarry)
 
