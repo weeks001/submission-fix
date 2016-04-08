@@ -92,42 +92,49 @@ def unzip(directory, zippy):
 
 
 def untar(directory, tarry):
-    """Extracts a given tar file into the given directory
+    """Extracts a the tar file into the given directory
 
-    Takes in a tar file and extracts its contents to the given directory. Afterwards, the
-    tar file is removed.
+    The system tar function will be attempted first to extract the tar file. This will 
+    most likley fail on Windows. If the system call fails, the Python tar functions 
+    are tried next. The tar file is checked against a blacklist for bad folder 
+    names and prints warnings to the user if this occurs. The tar is removed if
+    it was extracted correctly or corrupted. 
 
     Args:
         directory: directory where files will be extracted to
         tarry: tar file to extract
-
-    Tested on .tar.gz. Unsure if this will work on other tar files. 
     """
 
     blacklist = ['.', '..', '~']
 
-    try:
-        tar = tarfile.open(tarry)
-    except tarfile.ReadError:
-        print ("Warning: Could not open tar file: " + tarry + 
-                " The file could have been compressed as a another type and renamed.")
-        return
+    result = systemTar(directory, tarry)
+    if result:
+        try:
+            tar = tarfile.open(tarry)
+        except tarfile.ReadError:
+            print ("Warning: Could not open tar file. "
+                    "The file could have been compressed as another type and renamed. "
+                    "File: " + tarry)
+            return
 
-    if list(set(blacklist) & set(tar.getnames())):
-        print "Warning: Tar contains bad names. Python tar extraction will fail."
-        print "  --Attempt extraction with system tar--"
-        systemTar(directory, tarry)
-    else:
-        try: 
-            tar.extractall(directory)
-        except struct.error:
-            print "Warning: Could not extract tar properly: " + tarry
+        if list(set(blacklist) & set(tar.getnames())):
+            print ("Warning: Tar contains bad names. Python tar extraction will fail. "
+                    "Must handle tar extraction seperately. File: " + tarry)
+            tar.close()
+            return
+        else:
+            try: 
+                tar.extractall(directory)
+            except struct.error:
+                print "Warning: Extraction failed. File: " + tarry
 
-    tar.close()
+        tar.close()
     os.remove(tarry)
 
 def systemTar(directory, tarry):
-    """Extracts a tar file into a directory using system tar function. Unix only.
+    """Extracts a tar file into a directory using the system tar function. 
+
+    This is Unix only. Returns the returncode for the process if there was an error. 
 
     Args:
         directory: directory where files will be extracted to
@@ -136,11 +143,9 @@ def systemTar(directory, tarry):
 
     process = Popen(['tar', '-xzvf', tarry, '-C', directory], stdout=PIPE, stderr=PIPE)
     stdout, stderr = process.communicate()
-    if process.returncode == 0:
-        print "Tar extracted."
-    else:
+    if process.returncode:
         print "Tar extraction failed. Output: {}".format(stderr)
-
+    return process.returncode
 
 
 def prepareTimeCheck(time):
