@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 from __future__ import with_statement
 from datetime import datetime, date
+from subprocess import Popen, PIPE
 
 """
 This script extracts student submissions from both T-Square and Canvas bundled
@@ -103,20 +104,44 @@ def untar(directory, tarry):
     Tested on .tar.gz. Unsure if this will work on other tar files. 
     """
 
+    blacklist = ['.', '..', '~']
+
     try:
         tar = tarfile.open(tarry)
-        tar.extractall(directory)
     except tarfile.ReadError:
         print ("Warning: Could not open tar file: " + tarry + 
                 " The file could have been compressed as a another type and renamed.")
         return
-    except struct.error:
-        print "Warning: Could not extract tar properly: " + tarry
 
+    if list(set(blacklist) & set(tar.getnames())):
+        print "Warning: Tar contains bad names. Python tar extraction will fail."
+        print "  --Attempt extraction with system tar--"
+        systemTar(directory, tarry)
+    else:
+        try: 
+            tar.extractall(directory)
+        except struct.error:
+            print "Warning: Could not extract tar properly: " + tarry
 
-    # tar.extractall(directory)
     tar.close()
     os.remove(tarry)
+
+def systemTar(directory, tarry):
+    """Extracts a tar file into a directory using system tar function. Unix only.
+
+    Args:
+        directory: directory where files will be extracted to
+        tarry: tar file to extract
+    """
+
+    process = Popen(['tar', '-xzvf', tarry, '-C', directory], stdout=PIPE, stderr=PIPE)
+    stdout, stderr = process.communicate()
+    if process.returncode == 0:
+        print "Tar extracted."
+    else:
+        print "Tar extraction failed. Output: {}".format(stderr)
+
+
 
 def prepareTimeCheck(time):
     """Prepares user input timestamp for later use
