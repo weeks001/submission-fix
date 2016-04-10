@@ -97,8 +97,13 @@ def untar(directory, tarry):
     The system tar function will be attempted first to extract the tar file. This will 
     most likley fail on Windows. If the system call fails, the Python tar functions 
     are tried next. The tar file is checked against a blacklist for bad folder 
-    names and prints warnings to the user if this occurs. The tar is removed if
-    it was extracted correctly or corrupted. 
+    names and creates a copy of the tar filed (named 'backup_<tarname>'). If 
+    extraction succeeds, the backup file is removed. If if fails, an error is printed
+    and the user must handle that file manually. 
+
+    Note: Python may extract some files before failing. If the error is printed, Python
+    failed to extract some number of files and deleted them from the original archive.
+    The user must manually use the backup to extract all files in this case.
 
     Args:
         directory: directory where files will be extracted to
@@ -107,8 +112,12 @@ def untar(directory, tarry):
 
     blacklist = ['.', '..', '~']
 
+
     result = systemTar(directory, tarry)
-    if result:
+    if result != 0:
+        head, tail = os.path.split(tarry)
+        backup = os.path.join(head, 'backup_' + tail)
+
         try:
             tar = tarfile.open(tarry)
         except tarfile.ReadError:
@@ -118,15 +127,15 @@ def untar(directory, tarry):
             return
 
         if list(set(blacklist) & set(tar.getnames())):
-            print ("Warning: Tar contains bad names. Python tar extraction will fail. "
-                    "Must handle tar extraction seperately. File: " + tarry)
-            tar.close()
-            return
-        else:
-            try: 
-                tar.extractall(directory)
-            except struct.error:
-                print "Warning: Extraction failed. File: " + tarry
+            shutil.copy(tarry, backup)
+
+        try: 
+            tar.extractall(directory)
+            if os.path.isfile(backup):
+                os.remove(backup)
+        except struct.error:
+            print ("Error: Python extraction failed. Extract backup tar manually. "
+                    "File: " + tarry)
 
         tar.close()
     os.remove(tarry)
@@ -134,18 +143,23 @@ def untar(directory, tarry):
 def systemTar(directory, tarry):
     """Extracts a tar file into a directory using the system tar function. 
 
-    This is Unix only. Returns the returncode for the process if there was an error. 
+    This is Unix only. Returns the returncode for the process if there was an error 
+    and 1 if the subprocess was unable to start.
 
     Args:
         directory: directory where files will be extracted to
         tarry: tar file to extract
     """
 
-    process = Popen(['tar', '-xzvf', tarry, '-C', directory], stdout=PIPE, stderr=PIPE)
-    stdout, stderr = process.communicate()
-    if process.returncode:
-        print "Tar extraction failed. Output: {}".format(stderr)
-    return process.returncode
+    try:
+        process = Popen(['tar', '-xzvf', tarry, '-C', directory], stdout=PIPE, stderr=PIPE)
+        stdout, stderr = process.communicate()
+        if process.returncode:
+            print "System tar extraction failed."
+        return process.returncode
+    except:
+        return 1
+
 
 
 def prepareTimeCheck(time):
