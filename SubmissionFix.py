@@ -271,19 +271,32 @@ class TSquare(AssignmentManager):
             duetime = prepareTimeCheck(time)
 
         manager = cls(duetime)
+        directory = path or os.getcwd()
 
         if csv :
             manager.students = manager.readCSV(csv)
+            print "Extracting students using list: {list}.".format(list=csv)
 
         if path :
             manager.createPath(path)
 
+        tempPath = os.path.join(os.getcwd(), 'temp_extraction_folder')
+        try:
+            os.makedirs(tempPath)
+        except OSError:
+                print "Error: Temporary extraction path already exists."
+
         print "Extracting bulk submissions."
-        directory = manager.extractBulk(zipfile, directory=path) 
+        manager.extractBulk(zipfile, directory=tempPath) 
         print "Renaming student folders" 
-        manager.rename(directory)
+        manager.rename(tempPath)
         print "Moving submission files."
-        late = manager.move(directory, move)
+        late = manager.move(tempPath)
+        print "Decompressing any compressed files."
+        manager._inspectFolders(tempPath, move)
+        print "Moving submissions out of temporary folder."
+        manager._moveAllFiles(directory, tempPath)
+        shutil.rmtree(tempPath)
 
         if findTime and time and not late:
             print "\n\nNo Late Submissions \n "    
@@ -310,8 +323,11 @@ class TSquare(AssignmentManager):
         for filename in filelist:
             zfile.extract(filename, directory)
 
-        foldername, _ = filelist[0].split(os.sep, 1)
-        return os.path.join(directory, foldername)
+        # Pull student folders out of assignment directory
+        self._flattenOneLevel(directory)
+
+        # foldername, _ = filelist[0].split(os.sep, 1)
+        # return os.path.join(directory, foldername)
         
     def _findStudentsToExtract(self, filelist, students):
         """Given list of paths and students, return list of which paths to be extracted."""
@@ -392,7 +408,7 @@ class TSquare(AssignmentManager):
             path = os.path.join(source, files)
             shutil.move(path, studentFolder)
         os.rmdir(source)
-        extract(studentFolder)
+        # extract(studentFolder)
 
     def _processStudentFolder(self, studentFolder):
         """Collects and moves stray files, checks for late status, and handles submission files."""
@@ -406,7 +422,7 @@ class TSquare(AssignmentManager):
 
         return lateStatus
 
-    def move(self, directory, out):
+    def move(self, directory):
         """Processes each student folder.
 
         Goes through each folder in the given directory and processes it. If late status is being checked
@@ -428,13 +444,6 @@ class TSquare(AssignmentManager):
                 lateStatus = self._processStudentFolder(studentFolder)
                 if lateStatus:
                     late.append('  {timestamp}    {student}'.format(timestamp=lateStatus[0], student=(lateStatus[1])))
-
-            if out :
-                dest = os.path.dirname(directory)
-                shutil.move(studentFolder, dest)
-        if out :        
-            os.rmdir(directory)
-
         return late
 
     def stripTime(self, stamp):
@@ -459,6 +468,55 @@ class TSquare(AssignmentManager):
         subtime = timey.replace(tzinfo=pytz.utc).astimezone(eastern)
         subtime = eastern.normalize(subtime)
         return subtime
+
+    def _inspectFolders(self, path, move):
+        """Looks through each student folder in the directory and decompresses any compressed files."""
+
+        for folder in os.listdir(path):
+            folderPath = os.path.abspath(os.path.join(path, folder))
+            if os.path.isdir(folderPath):
+                extract(os.path.join(path, folder))
+                if move == '1':
+                    self._flattenOneLevel(folderPath)
+                if move == 'all':
+                    self._flattenAllLevels(folderPath)
+
+    def _flattenOneLevel(self, source):
+        """Flatten the source directory's structure by one level."""
+
+        for directory in os.listdir(source):
+            currentFolder = os.path.join(source, directory)
+            if os.path.isdir(currentFolder):
+                for file in os.listdir(currentFolder):
+                    shutil.move(os.path.join(currentFolder, file), os.path.join(source, file))
+
+                try:
+                    shutil.rmtree(currentFolder)
+                except OSError:
+                    print "Error: Unable to remove path: " + os.path.abspath(path)
+
+    def _flattenAllLevels(self, source):
+        """Flatten the source directory's struture by all levels."""
+
+        for root, directories, files in os.walk(source):
+            for file in files:
+                filePath = os.path.join(root, file)
+                destination = os.path.join(source, file)
+                if filePath != destination:
+                    shutil.move(filePath, destination)
+
+        for directory in os.listdir(source):
+            if os.path.isdir(os.path.join(source, directory)):
+                shutil.rmtree(os.path.join(source,directory))
+
+    def _moveAllFiles(self, destination, source):
+        """Moves every file in the source directory to the destination directory."""
+
+        for directory in os.listdir(source):
+            if os.path.isdir(os.path.join(source, directory)):
+                destPath = os.path.join(destination, directory)
+                shutil.move(os.path.join(source, directory), destPath)
+
 
 class Canvas(AssignmentManager):
     """Manager to handle Canvas submissions."""
@@ -705,7 +763,9 @@ def main(sysargs):
     t2 = subparsers.add_parser('tsquare', help='Submission files downloaded from T-Square')
     t2.add_argument('-c', '--csv', help='csv file of particular students to extract (semicolon seperated)')
     t2.add_argument('-p', '--path', help='extraction path for bulk submissions zip')
-    t2.add_argument('-m', '--move', help='move student folders out of archive root folder', action='store_true')
+    t2.add_argument('-m', '--move', help=('move extracted files within student folder out' 
+                    ' one level or all levels (completely collapse directory structure)'), 
+                    choices=['1', 'all'])
     t2.add_argument('-t', '--time', help=('Flag late submissions past due date. '
                                           'Checks submissions using the US/Eastern timezone. Requires pytz to use.'), 
                                         nargs='+', action=requiredLength(2), metavar=('mm/dd/yy', 'hh:mm'))

@@ -149,21 +149,24 @@ class TestTSquareIntegration(TestIntegration, unittest.TestCase):
 
 	#Normal tests
 	def test_pathExistsNoFlags(self):
-		answer = self.pathTestSetup('Homework 0')
+		# answer = self.pathTestSetup('Homework 0')
+		answer = self.pathTestSetup()
 		self.tempTestDir(['', 'testing_set1.zip', 'tsquare'], 'T-Square - Homework 0, No flags', answer, 'testing_set1.zip')
 
-	def test_pathExistsMove(self):
-		answer = self.pathTestSetup()
-		self.tempTestDir(['', 'testing_set1.zip','tsquare', '-m'], 'T-Square - Homework 0, -move', answer, 'testing_set1.zip')
+	# def test_pathExistsMove(self):
+	# 	answer = self.pathTestSetup()
+	# 	self.tempTestDir(['', 'testing_set1.zip','tsquare', '-m'], 'T-Square - Homework 0, -move', answer, 'testing_set1.zip')
 
 	def test_pathExistsPath(self):
-		answer = self.pathTestSetup(os.path.join('NewFolder','Homework 0'))
+		# answer = self.pathTestSetup(os.path.join('NewFolder','Homework 0'))
+		answer = self.pathTestSetup(os.path.join('NewFolder'))
 		self.tempTestDir(['', 'testing_set1.zip','tsquare', '-pNewFolder'], 'T-Square - Homework 0, -path', answer, 'testing_set1.zip')
 
 	def test_pathExistsPathConflictY(self):
 		junkpath = os.path.join(os.getcwd(), 'test_folder', 'NewFolder')
 		testfile = [os.path.abspath('testingtxt1.txt')]
-		answer = self.pathTestSetup(os.path.join('NewFolder','Homework 0'))
+		# answer = self.pathTestSetup(os.path.join('NewFolder','Homework 0'))
+		answer = self.pathTestSetup(os.path.join('NewFolder'))
 		self.loadedTempTestDir(['testing_set1.zip','tsquare', '-pNewFolder'], 'T-Square - Homework 0, -path Conflict Y', answer, 'testing_set1.zip', junkpath, testfile, choice='y\n')
 
 	def test_pathExistsPathConflictN(self):
@@ -172,44 +175,47 @@ class TestTSquareIntegration(TestIntegration, unittest.TestCase):
 		answer = [os.path.abspath('testingtxt1.txt')]
 		self.loadedTempTestDir(['testing_set1.zip','tsquare', '-pNewFolder'], 'T-Square - Homework 0, -path Conflict N', answer, 'testing_set1.zip', junkpath, testfile, choice='n\n')
 
-	def test_pathExistsPathMove(self):
-		answer = self.pathTestSetup('NewFolder')
-		self.tempTestDir(['', 'testing_set1.zip','tsquare', '-pNewFolder', '-m'], 'T-Square - Homework 0, -path -move', answer, 'testing_set1.zip')
+	# def test_pathExistsPathMove(self):
+	# 	answer = self.pathTestSetup('NewFolder')
+	# 	self.tempTestDir(['', 'testing_set1.zip','tsquare', '-pNewFolder', '-m'], 'T-Square - Homework 0, -path -move', answer, 'testing_set1.zip')
 
 	def test_pathExistsCSV(self):
 		names = [('Boss, Big', '41b1318bf1cce2d9a40761b02bab065e'), ('Campbell, Roy', '39b73fb441b1c611f3a50be2b8693f03'),
 				 ('Hunter, Naomi', 'd860291b770a7dadd23af116c5334caa'), ('Ocelot, Revolver', 'ef95ea7fbb72b57b38bd5aa7efcf8ca3'), 
 				 ('Silverburgh, Meryl', '205105fa7784a73c91e1412cfc886f65'), ('Snake, Liquid', 'e60a34764ec988f9d4597fe7825cdd63'), 
 				 ('Snake, Solid', '437e86082822caa972544f09da5f1050')]
-		answer = self.pathTestSetup('Homework 0', names)
+		# answer = self.pathTestSetup('Homework 0', names)
+		answer = self.pathTestSetup(None, names)
 		csv = os.path.abspath('testingcsv1.csv')
 		self.tempTestDir(['', 'testing_set1.zip','tsquare', '-c' + csv], 'T-Square - Homework 0, -csv', answer, 'testing_set1.zip')
 
-	def test_pathExistsCSV(self):
-		names = [('Boss, Big', '41b1318bf1cce2d9a40761b02bab065e'), ('Campbell, Roy', '39b73fb441b1c611f3a50be2b8693f03'),
-				 ('Hunter, Naomi', 'd860291b770a7dadd23af116c5334caa'), ('Ocelot, Revolver', 'ef95ea7fbb72b57b38bd5aa7efcf8ca3'), 
-				 ('Silverburgh, Meryl', '205105fa7784a73c91e1412cfc886f65'), ('Snake, Liquid', 'e60a34764ec988f9d4597fe7825cdd63'), 
-				 ('Snake, Solid', '437e86082822caa972544f09da5f1050')]
-		answer = self.pathTestSetup('Homework 0', names)
-		csv = os.path.abspath('testingcsv7.csv')
-		self.tempTestDir(['', 'testing_set1.zip','tsquare', '-c' + csv], 'T-Square - Homework 0, -csv', answer, 'testing_set1.zip')
+	# def test_pathExistsCSV(self):
+	# 	names = [('Boss, Big', '41b1318bf1cce2d9a40761b02bab065e'), ('Campbell, Roy', '39b73fb441b1c611f3a50be2b8693f03'),
+	# 			 ('Hunter, Naomi', 'd860291b770a7dadd23af116c5334caa'), ('Ocelot, Revolver', 'ef95ea7fbb72b57b38bd5aa7efcf8ca3'), 
+	# 			 ('Silverburgh, Meryl', '205105fa7784a73c91e1412cfc886f65'), ('Snake, Liquid', 'e60a34764ec988f9d4597fe7825cdd63'), 
+	# 			 ('Snake, Solid', '437e86082822caa972544f09da5f1050')]
+	# 	answer = self.pathTestSetup('Homework 0', names)
+	# 	csv = os.path.abspath('testingcsv7.csv')
+	# 	self.tempTestDir(['', 'testing_set1.zip','tsquare', '-c' + csv], 'T-Square - Homework 0, -csv', answer, 'testing_set1.zip')
 
 	#Parens tests - (Malloc)
 	def test_pathExistsNoFlagsParens(self):
-		answer = self.pathTestSetup('Homework 0 (Malloc)')
+		# answer = self.pathTestSetup('Homework 0 (Malloc)')
+		answer = self.pathTestSetup()
 		self.tempTestDir(['', 'testing_set2.zip', 'tsquare'], 'T-Square - Homework 0, No flags', answer, 'testing_set2.zip')
 
-	def test_pathExistsMoveParens(self):
-		answer = self.pathTestSetup()
-		self.tempTestDir(['', 'testing_set2.zip','tsquare', '-m'], 'T-Square - Homework 0, -move', answer, 'testing_set2.zip')
+	# def test_pathExistsMoveParens(self):
+	# 	answer = self.pathTestSetup()
+	# 	self.tempTestDir(['', 'testing_set2.zip','tsquare', '-m'], 'T-Square - Homework 0, -move', answer, 'testing_set2.zip')
 
 	def test_pathExistsPathParens(self):
-		answer = self.pathTestSetup(os.path.join('NewFolder','Homework 0 (Malloc)'))
+		# answer = self.pathTestSetup(os.path.join('NewFolder','Homework 0 (Malloc)'))
+		answer = self.pathTestSetup(os.path.join('NewFolder'))
 		self.tempTestDir(['', 'testing_set2.zip','tsquare', '-pNewFolder'], 'T-Square - Homework 0, -path', answer, 'testing_set2.zip')
 
-	def test_pathExistsPathMoveParens(self):
-		answer = self.pathTestSetup('NewFolder')
-		self.tempTestDir(['', 'testing_set2.zip','tsquare', '-pNewFolder', '-m'], 'T-Square - Homework 0, -path -move', answer, 'testing_set2.zip')
+	# def test_pathExistsPathMoveParens(self):
+	# 	answer = self.pathTestSetup('NewFolder')
+	# 	self.tempTestDir(['', 'testing_set2.zip','tsquare', '-pNewFolder', '-m'], 'T-Square - Homework 0, -path -move', answer, 'testing_set2.zip')
 
 	#Other tests
 	def test_lateStudentsListed(self):
@@ -233,7 +239,8 @@ class TestTSquareIntegration(TestIntegration, unittest.TestCase):
 					 ('Silverburgh, Meryl', '205105fa7784a73c91e1412cfc886f65'), ('Snake, Liquid', 'e60a34764ec988f9d4597fe7825cdd63'), 
 					 ('Snake, Solid', '437e86082822caa972544f09da5f1050'), ('Snake, Solidus', 'de2caa5dd90df87e03cfe62780a58c94'), 
 					 ('Wolf, Sniper', '4f4002d30d729c89bb7fca07bf693c2c')]
-		answer = self.addToSetup(['Sasaki, Johnny'], files, self.pathTestSetup('Homework 0', testsetNames=names), 'Homework 0')
+		# answer = self.addToSetup(['Sasaki, Johnny'], files, self.pathTestSetup('Homework 0', testsetNames=names), 'Homework 0')
+		answer = self.addToSetup(['Sasaki, Johnny'], files, self.pathTestSetup(testsetNames=names))
 		self.tempTestDir(['', 'testing_set3.zip', 'tsquare'], 'T-Square - Homework 0, No Flags, Zip', answer, 'testing_set3.zip', 'testroll.csv')
 	
 	def test_pathExistsTargz(self):
@@ -248,23 +255,24 @@ class TestTSquareIntegration(TestIntegration, unittest.TestCase):
 					 ('Silverburgh, Meryl', '205105fa7784a73c91e1412cfc886f65'), ('Snake, Liquid', 'e60a34764ec988f9d4597fe7825cdd63'), 
 					 ('Snake, Solid', '437e86082822caa972544f09da5f1050'), ('Snake, Solidus', 'de2caa5dd90df87e03cfe62780a58c94'), 
 					 ('Wolf, Sniper', '4f4002d30d729c89bb7fca07bf693c2c')]
-		answer = self.addToSetup(['Sasaki, Johnny'], files, self.pathTestSetup('Homework 0', testsetNames=names), 'Homework 0')
+		# answer = self.addToSetup(['Sasaki, Johnny'], files, self.pathTestSetup('Homework 0', testsetNames=names), 'Homework 0')
+		answer = self.addToSetup(['Sasaki, Johnny'], files, self.pathTestSetup(testsetNames=names))
 		self.tempTestDir(['', 'testing_set4.zip', 'tsquare'], 'T-Square - Homework 0, No Flags, Tar.gz', answer, 'testing_set4.zip', 'testroll.csv')
 
-	def test_pathExistsTargz(self):
-		files = [os.path.join('testingtxt1.txt'), os.path.join('patriots.asm')]
-		names = [('Anderson, Donald', '20f5d6b21d3d2b3685f2144bc2fc771d'), ('Baker, Kenneth', 'd30f7f7f153271e28c4b632db9fa0b01'),
-					 ('Boss, Big', '41b1318bf1cce2d9a40761b02bab065e'), ('Campbell, Roy', '39b73fb441b1c611f3a50be2b8693f03'),
-					 ('Emmerich, Hal', 'c664acb099c59b2a4940773012d9ca40'), ('Fox, Grey', 'f8049726520d8dc911a7014af736e302'),
-					 ('Hunter, Naomi', 'd860291b770a7dadd23af116c5334caa'), ('Ling, Mei', '29eb03d07be7696caba2f608ac7b8a71'),
-					 ('Mantis, Psycho', '04a6c6c02d714a17cdd6aab5107008e4'), ('Miller, Kazuhira', 'f5cd92c317cec73b96ede092a62adcfe'), 
-					 ('Ocelot, Revolver', 'ef95ea7fbb72b57b38bd5aa7efcf8ca3'), ('Octopus, Decoy', '53a36da95a92702adfa25cb1e221a0d2'),
-					 ('Raven, Vulcan', '8d6da48c03e4e95fad55843d1ed84211'), ('Romanenko, Nastasha', '6569a8e2f02a2611a34106bd2d77f941'), 
-					 ('Silverburgh, Meryl', '205105fa7784a73c91e1412cfc886f65'), ('Snake, Liquid', 'e60a34764ec988f9d4597fe7825cdd63'), 
-					 ('Snake, Solid', '437e86082822caa972544f09da5f1050'), ('Snake, Solidus', 'de2caa5dd90df87e03cfe62780a58c94'), 
-					 ('Wolf, Sniper', '4f4002d30d729c89bb7fca07bf693c2c')]
-		answer = self.addToSetup(['Sasaki, Johnny'], files, self.pathTestSetup('Homework 0', testsetNames=names), 'Homework 0')
-		self.tempTestDir(['', 'testing_set5.zip', 'tsquare'], 'T-Square - Homework 0, No Flags, Tar', answer, 'testing_set5.zip', 'testroll.csv')
+	# def test_pathExistsTargz(self):
+	# 	files = [os.path.join('testingtxt1.txt'), os.path.join('patriots.asm')]
+	# 	names = [('Anderson, Donald', '20f5d6b21d3d2b3685f2144bc2fc771d'), ('Baker, Kenneth', 'd30f7f7f153271e28c4b632db9fa0b01'),
+	# 				 ('Boss, Big', '41b1318bf1cce2d9a40761b02bab065e'), ('Campbell, Roy', '39b73fb441b1c611f3a50be2b8693f03'),
+	# 				 ('Emmerich, Hal', 'c664acb099c59b2a4940773012d9ca40'), ('Fox, Grey', 'f8049726520d8dc911a7014af736e302'),
+	# 				 ('Hunter, Naomi', 'd860291b770a7dadd23af116c5334caa'), ('Ling, Mei', '29eb03d07be7696caba2f608ac7b8a71'),
+	# 				 ('Mantis, Psycho', '04a6c6c02d714a17cdd6aab5107008e4'), ('Miller, Kazuhira', 'f5cd92c317cec73b96ede092a62adcfe'), 
+	# 				 ('Ocelot, Revolver', 'ef95ea7fbb72b57b38bd5aa7efcf8ca3'), ('Octopus, Decoy', '53a36da95a92702adfa25cb1e221a0d2'),
+	# 				 ('Raven, Vulcan', '8d6da48c03e4e95fad55843d1ed84211'), ('Romanenko, Nastasha', '6569a8e2f02a2611a34106bd2d77f941'), 
+	# 				 ('Silverburgh, Meryl', '205105fa7784a73c91e1412cfc886f65'), ('Snake, Liquid', 'e60a34764ec988f9d4597fe7825cdd63'), 
+	# 				 ('Snake, Solid', '437e86082822caa972544f09da5f1050'), ('Snake, Solidus', 'de2caa5dd90df87e03cfe62780a58c94'), 
+	# 				 ('Wolf, Sniper', '4f4002d30d729c89bb7fca07bf693c2c')]
+	# 	answer = self.addToSetup(['Sasaki, Johnny'], files, self.pathTestSetup('Homework 0', testsetNames=names), 'Homework 0')
+	# 	self.tempTestDir(['', 'testing_set5.zip', 'tsquare'], 'T-Square - Homework 0, No Flags, Tar', answer, 'testing_set5.zip', 'testroll.csv')
 
 
 
