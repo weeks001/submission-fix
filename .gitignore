@@ -4,3 +4,4 @@ tests_logC.txt
 *.swp
 .fuse_hidden*
 subfix notes.txt
+.~lock.*

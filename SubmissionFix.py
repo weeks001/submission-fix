@@ -328,9 +328,6 @@ class TSquare(AssignmentManager):
 
         # Pull student folders out of assignment directory
         self._flattenOneLevel(directory)
-
-        # foldername, _ = filelist[0].split(os.sep, 1)
-        # return os.path.join(directory, foldername)
         
     def _findStudentsToExtract(self, filelist, students):
         """Given list of paths and students, return list of which paths to be extracted."""
@@ -412,20 +409,17 @@ class TSquare(AssignmentManager):
             os.rmdir(source)
             return (os.path.basename(studentFolder))
 
-
         for files in os.listdir(source) :
             path = os.path.join(source, files)
             shutil.move(path, studentFolder)
+
         os.rmdir(source)
-        # extract(studentFolder)
 
     def _processStudentFolder(self, studentFolder):
         """Collects and moves stray files, checks for late status, and handles submission files."""
         
         strayFiles = list(self._getFilePaths(studentFolder))
-
         lateStatus = self._checkTimeStamp(os.path.basename(studentFolder), strayFiles)
-
         self._moveStrayFiles(studentFolder, strayFiles)
         noSubmission = self._extractSubmissionAttachments(studentFolder)
 
