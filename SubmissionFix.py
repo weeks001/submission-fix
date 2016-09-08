@@ -291,18 +291,21 @@ class TSquare(AssignmentManager):
         print "Renaming student folders" 
         manager.rename(tempPath)
         print "Moving submission files."
-        late = manager.move(tempPath)
+        late, noSub = manager.move(tempPath)
         print "Decompressing any compressed files."
         manager._inspectFolders(tempPath, move)
         print "Moving submissions out of temporary folder."
         manager._moveAllFiles(directory, tempPath)
         shutil.rmtree(tempPath)
 
-        if findTime and time and not late:
+        if findTime and time and not late and not noSub:
             print "\n\nNo Late Submissions \n "    
         if late :
             print "\n\nLate Submissions: "
             print '\n'.join(late)
+        if noSub :
+            print "\n\nNo Submissions: "
+            print '\n'.join(noSub)
 
     def __init__(self, duetime=None, students=None):
         self.duetime = duetime
@@ -404,6 +407,12 @@ class TSquare(AssignmentManager):
         """Moves assignment files out of Submission Attachment(s) folder, removes folder, and extracts files if needed."""
         
         source = os.path.join(studentFolder, "Submission attachment(s)")
+
+        if not os.listdir(source):
+            os.rmdir(source)
+            return (os.path.basename(studentFolder))
+
+
         for files in os.listdir(source) :
             path = os.path.join(source, files)
             shutil.move(path, studentFolder)
@@ -418,9 +427,9 @@ class TSquare(AssignmentManager):
         lateStatus = self._checkTimeStamp(os.path.basename(studentFolder), strayFiles)
 
         self._moveStrayFiles(studentFolder, strayFiles)
-        self._extractSubmissionAttachments(studentFolder)
+        noSubmission = self._extractSubmissionAttachments(studentFolder)
 
-        return lateStatus
+        return (lateStatus, noSubmission)
 
     def move(self, directory):
         """Processes each student folder.
@@ -438,13 +447,16 @@ class TSquare(AssignmentManager):
         """
 
         late = []
+        noSub = []
         for fn in os.listdir(directory) :
             studentFolder = os.path.join(directory, fn)
             if os.path.isdir(studentFolder) :
-                lateStatus = self._processStudentFolder(studentFolder)
+                lateStatus, noSubmission = self._processStudentFolder(studentFolder)
                 if lateStatus:
                     late.append('  {timestamp}    {student}'.format(timestamp=lateStatus[0], student=(lateStatus[1])))
-        return late
+                if noSubmission:
+                    noSub.append('  {student}'.format(student=noSubmission))
+        return (late, noSub)
 
     def stripTime(self, stamp):
         """Converts the timestamp for the student's submission into a timezone aware time.
@@ -486,7 +498,7 @@ class TSquare(AssignmentManager):
 
         for directory in os.listdir(source):
             currentFolder = os.path.join(source, directory)
-            if os.path.isdir(currentFolder):
+            if os.path.isdir(currentFolder) and os.path.basename(currentFolder) != "Text":
                 for file in os.listdir(currentFolder):
                     shutil.move(os.path.join(currentFolder, file), os.path.join(source, file))
 
@@ -501,12 +513,14 @@ class TSquare(AssignmentManager):
         for root, directories, files in os.walk(source):
             for file in files:
                 filePath = os.path.join(root, file)
+                if os.path.basename(os.path.dirname(filePath)) == "Text":
+                    continue
                 destination = os.path.join(source, file)
                 if filePath != destination:
                     shutil.move(filePath, destination)
 
         for directory in os.listdir(source):
-            if os.path.isdir(os.path.join(source, directory)):
+            if os.path.isdir(os.path.join(source, directory)) and directory != "Text":
                 shutil.rmtree(os.path.join(source,directory))
 
     def _moveAllFiles(self, destination, source):
