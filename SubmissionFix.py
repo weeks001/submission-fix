@@ -529,6 +529,8 @@ class TSquare(AssignmentManager):
         for directory in os.listdir(source):
             if os.path.isdir(os.path.join(source, directory)):
                 destPath = os.path.join(destination, directory)
+                if os.path.exists(destPath):
+                    shutil.rmtree(destPath)
                 shutil.move(os.path.join(source, directory), destPath)
 
 
@@ -761,6 +763,8 @@ class Canvas(AssignmentManager):
         for directory in os.listdir(source):
             if os.path.isdir(os.path.join(source, directory)):
                 destPath = os.path.join(destination, directory)
+                if os.path.exists(destPath):
+                    shutil.rmtree(destPath)
                 shutil.move(os.path.join(source, directory), destPath)
 
 
