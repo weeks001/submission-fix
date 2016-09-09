@@ -214,7 +214,7 @@ class TestTSquareIntegration(TestIntegration, unittest.TestCase):
 		self.lateTempTestDir(['testing_set1.zip','tsquare', '-t', '02/28/05','23:55'], 'T-Square - Homework 0, -time', 'testing_set1.zip', students)
 
 	def test_noSubStudentsListed(self):
-		students = ['Fox, Grey', 'Ling, Mei']
+		students = ['Hunter, Naomi', 'Emmerich, Hal']
 		self.lateTempTestDir(['testing_set9.zip','tsquare'], 'T-Square - Homework 0, No Flags, No Submissions', 'testing_set9.zip', students)
 
 	def test_pathExistsCSVWrong(self):
