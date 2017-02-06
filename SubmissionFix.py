@@ -5,10 +5,10 @@ from subprocess import Popen, PIPE
 
 """
 This script extracts student submissions from both T-Square and Canvas bundled
-bulk submissions. Depending on the submission manager being used there are 
+bulk submissions. Depending on the submission manager being used there are
 different options for cleaning up the submissions. Both allow for extracting
-only specific students and into a given directory. It automatically extracts 
-zip, tar, and tar.gz files that students submit. 
+only specific students and into a given directory. It automatically extracts
+zip, tar, and tar.gz files that students submit.
 """
 
 __author__ = "Marie Weeks"
@@ -60,8 +60,8 @@ def requiredLength(nargs):
 def extract(directory):
     """Extracts any zip or tar files in given directory
 
-    Looks through files in the input directory, extracting every zip and tar file. Resulting 
-    files appear alongside archive file in the directory. 
+    Looks through files in the input directory, extracting every zip and tar file. Resulting
+    files appear alongside archive file in the directory.
 
     Args:
         directory: directory to be searched for archive files
@@ -94,12 +94,12 @@ def unzip(directory, zippy):
 def untar(directory, tarry):
     """Extracts a the tar file into the given directory
 
-    The system tar function will be attempted first to extract the tar file. This will 
-    most likley fail on Windows. If the system call fails, the Python tar functions 
-    are tried next. The tar file is checked against a blacklist for bad folder 
-    names and creates a copy of the tar filed (named 'backup_<tarname>'). If 
+    The system tar function will be attempted first to extract the tar file. This will
+    most likley fail on Windows. If the system call fails, the Python tar functions
+    are tried next. The tar file is checked against a blacklist for bad folder
+    names and creates a copy of the tar filed (named 'backup_<tarname>'). If
     extraction succeeds, the backup file is removed. If if fails, an error is printed
-    and the user must handle that file manually. 
+    and the user must handle that file manually.
 
     Note: Python may extract some files before failing. If the error is printed, Python
     failed to extract some number of files and deleted them from the original archive.
@@ -129,7 +129,7 @@ def untar(directory, tarry):
         if list(set(blacklist) & set(tar.getnames())):
             shutil.copy(tarry, backup)
 
-        try: 
+        try:
             tar.extractall(directory)
             if os.path.isfile(backup):
                 os.remove(backup)
@@ -141,9 +141,9 @@ def untar(directory, tarry):
     os.remove(tarry)
 
 def systemTar(directory, tarry):
-    """Extracts a tar file into a directory using the system tar function. 
+    """Extracts a tar file into a directory using the system tar function.
 
-    This is Unix only. Returns the returncode for the process if there was an error 
+    This is Unix only. Returns the returncode for the process if there was an error
     and 1 if the subprocess was unable to start.
 
     Args:
@@ -166,8 +166,8 @@ def prepareTimeCheck(time):
     """Prepares user input timestamp for later use
 
     Takes in a timestamp in the format 'mm/dd/yy HH:MM' to be used as a due date for an assignment and
-    converts it into a localized datetime object. This feature only works if the user has the pytz 
-    module installed. 
+    converts it into a localized datetime object. This feature only works if the user has the pytz
+    module installed.
 
     Args:
         time: duedate timestamp in format 'mm/dd/yy HH:MM'
@@ -196,9 +196,9 @@ class AssignmentManager(object):
         Creates a list of paths out of the zip file. If a csv file was input, this list is shortened
         using a list from the csv file. All paths within the list are extracted into the given path.
         If no path is given, paths are extracted into the current working directory.
-        
+
         Args:
-            zippy: bulk submission zip file 
+            zippy: bulk submission zip file
             students: list of student names to grade (optional)
             directory: directory to extract zip into (optional, default: working directory)
 
@@ -233,7 +233,7 @@ class AssignmentManager(object):
     def createPath(self, path):
         """Create the input path.
 
-        As long as the entered path is not the current working directory, try to create the path. If 
+        As long as the entered path is not the current working directory, try to create the path. If
         this fails, report error and handle collision.
 
         Args:
@@ -287,8 +287,8 @@ class TSquare(AssignmentManager):
                 print "Error: Temporary extraction path already exists."
 
         print "Extracting bulk submissions."
-        manager.extractBulk(zipfile, directory=tempPath) 
-        print "Renaming student folders" 
+        manager.extractBulk(zipfile, directory=tempPath)
+        print "Renaming student folders"
         manager.rename(tempPath)
         print "Moving submission files."
         late, noSub = manager.move(tempPath)
@@ -299,7 +299,7 @@ class TSquare(AssignmentManager):
         shutil.rmtree(tempPath)
 
         if findTime and time and not late and not noSub:
-            print "\n\nNo Late Submissions \n "    
+            print "\n\nNo Late Submissions \n "
         if late :
             print "\n\nLate Submissions: "
             print '\n'.join(late)
@@ -328,7 +328,7 @@ class TSquare(AssignmentManager):
 
         # Pull student folders out of assignment directory
         self._flattenOneLevel(directory)
-        
+
     def _findStudentsToExtract(self, filelist, students):
         """Given list of paths and students, return list of which paths to be extracted."""
 
@@ -353,7 +353,7 @@ class TSquare(AssignmentManager):
             path = os.path.join(directory, fn)
             end = os.path.basename(os.path.normpath(path))
             new = str(os.path.dirname(path) + os.sep + end[:end.find('(')])
-            os.rename(path, new)  
+            shutil.move(path, new)
 
     def _getFilePaths(self, folder):
         """Returns file paths within a given folder."""
@@ -386,8 +386,8 @@ class TSquare(AssignmentManager):
 
         path = os.path.join(source, "Feedback Attachment(s)")
         if os.path.isdir(path):
-            shutil.move(path, dest)      
-  
+            shutil.move(path, dest)
+
     def _moveStrayFiles(self, source, strayFiles):
         """Creates a 'Text' directory and moves non-assignment files to it."""
 
@@ -402,7 +402,7 @@ class TSquare(AssignmentManager):
 
     def _extractSubmissionAttachments(self, studentFolder):
         """Moves assignment files out of Submission Attachment(s) folder, removes folder, and extracts files if needed."""
-        
+
         source = os.path.join(studentFolder, "Submission attachment(s)")
 
         if not os.listdir(source):
@@ -417,7 +417,7 @@ class TSquare(AssignmentManager):
 
     def _processStudentFolder(self, studentFolder):
         """Collects and moves stray files, checks for late status, and handles submission files."""
-        
+
         strayFiles = list(self._getFilePaths(studentFolder))
         lateStatus = self._checkTimeStamp(os.path.basename(studentFolder), strayFiles)
         self._moveStrayFiles(studentFolder, strayFiles)
@@ -456,7 +456,7 @@ class TSquare(AssignmentManager):
         """Converts the timestamp for the student's submission into a timezone aware time.
 
         Takes in the timestamp string and converts it into a datetime object. From there the
-        datetime object is converted into a US/Eastern timezone aware time and returned. 
+        datetime object is converted into a US/Eastern timezone aware time and returned.
 
         Args:
             stamp: timestamp string of the format YYYYmmddHHMMsssss
@@ -556,7 +556,7 @@ class Canvas(AssignmentManager):
                 print "Error: Temporary extraction path already exists."
 
         print "Extracting bulk submissions."
-        manager.extractBulk(zipfile, directory=tempPath) 
+        manager.extractBulk(zipfile, directory=tempPath)
         print "Moving and renaming submission files."
         folders = manager.move(tempPath, roll, zipfile, csv)
         print "Decompressing any compressed files."
@@ -564,7 +564,7 @@ class Canvas(AssignmentManager):
         print "Moving submissions out of temporary folder."
         manager._moveAllFiles(directory, tempPath)
         shutil.rmtree(tempPath)
-        
+
     def __init__(self, roll, students=None):
         self.roll, self.sections = self._createRollDict(roll)
         self.students = students
@@ -578,7 +578,7 @@ class Canvas(AssignmentManager):
             reader = csv.reader(f, delimiter=',')
             reader.next()
             reader.next()
-            for row in reader: 
+            for row in reader:
                 section = row[3].rsplit(' ', 1)[1].upper()
                 squishedName = re.sub(r'\W+', '', row[0]).upper()
                 sections.setdefault(section, list()).append(row[0])
@@ -609,7 +609,7 @@ class Canvas(AssignmentManager):
             squishedName, _ = self._parseFileName(filename)
 
             if squishedName.upper() in self.roll.keys():
-                student = self.roll[squishedName.upper()] 
+                student = self.roll[squishedName.upper()]
             else:
                 print "Warning: {student} not found in roll. Skipping.".format(student=squishedName)
                 continue
@@ -654,10 +654,10 @@ class Canvas(AssignmentManager):
                 continue
 
             studentName, studentFile = self._parseFileName(filename)
-                       
+
             if studentName.upper() in self.roll.keys():
                 student = self.roll[studentName.upper()]
-                
+
                 studentFolder = self._createStudentFolder(directory, student, createdFolders)
                 newFilename = self._renameFile(studentFile)
                 newPath = os.path.join(studentFolder, newFilename)
@@ -686,7 +686,7 @@ class Canvas(AssignmentManager):
 
     def _getMatch(self, student):
         """Try to match student string with pattern and stop when the pattern is found."""
-        
+
         for p in _student_file_patterns:
             m = p.match(student)
             if m:
@@ -775,11 +775,11 @@ def main(sysargs):
     t2 = subparsers.add_parser('tsquare', help='Submission files downloaded from T-Square')
     t2.add_argument('-c', '--csv', help='csv file of particular students to extract (semicolon seperated)')
     t2.add_argument('-p', '--path', help='extraction path for bulk submissions zip')
-    t2.add_argument('-m', '--move', help=('move extracted files within student folder out' 
-                    ' one level or all levels (completely collapse directory structure)'), 
+    t2.add_argument('-m', '--move', help=('move extracted files within student folder out'
+                    ' one level or all levels (completely collapse directory structure)'),
                     choices=['1', 'all'])
     t2.add_argument('-t', '--time', help=('Flag late submissions past due date. '
-                                          'Checks submissions using the US/Eastern timezone. Requires pytz to use.'), 
+                                          'Checks submissions using the US/Eastern timezone. Requires pytz to use.'),
                                         nargs='+', action=requiredLength(2), metavar=('mm/dd/yy', 'hh:mm'))
     t2.set_defaults(action='tsquare')
 
@@ -788,14 +788,14 @@ def main(sysargs):
     canv.add_argument('-c', '--csv', help='csv file of particular students to extract (semicolon seperated)')
     canv.add_argument('-p', '--path', help='extraction path for bulk submissions zip')
     canv.add_argument('-s', '--section', help='grading section to extract from submissions')
-    canv.add_argument('-m', '--move', help=('move extracted files within student folder out' 
-                    ' one level or all levels (completely collapse directory structure)'), 
+    canv.add_argument('-m', '--move', help=('move extracted files within student folder out'
+                    ' one level or all levels (completely collapse directory structure)'),
                     choices=['1', 'all'])
     canv.set_defaults(action='canvas')
 
     if len(sysargs) == 1 :
         parser.print_help()
-       
+
         ## Source: http://stackoverflow.com/questions/20094215/argparse-subparser-monolithic-help-output
         # retrieve subparsers from parser
         subparsers_actions = [
